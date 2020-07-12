@@ -1,0 +1,5 @@
+node_modules/
+logs/
+matchup-candidates/
+Decision Logs/
+postgres-credentials.json
