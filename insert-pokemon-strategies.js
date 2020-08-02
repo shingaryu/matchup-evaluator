@@ -8,15 +8,15 @@ const { TeamImporter, Dex } = require('percymon');
 global.Dex = Dex;
 global.toId = Dex.getId;
 const SqlService = require('./sql-service').SqlService;
-// const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
+const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
 
 const sqlService = new SqlService();
 
 const matchupCandidates = loadPokemonSetsFromTexts(global.program.directory);
-// const customGameFormat = Dex.getFormat(`gen8customgame`, true);
-// customGameFormat.ruleset = customGameFormat.ruleset.filter(rule => rule !== 'Team Preview');
-// customGameFormat.forcedLevel = 50;
-// validatePokemonSets(customGameFormat, matchupCandidates)
+const customGameFormat = Dex.getFormat(`gen8customgame`, true);
+customGameFormat.ruleset = customGameFormat.ruleset.filter(rule => rule !== 'Team Preview');
+customGameFormat.forcedLevel = 50;
+validatePokemonSets(customGameFormat, matchupCandidates)
 
 const insertPromises = [];
 matchupCandidates.forEach(poke => {
