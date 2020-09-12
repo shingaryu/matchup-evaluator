@@ -16,7 +16,7 @@ import MoveDamage from './models/MoveDamage';
 calcAndInsertAllDamageMatchups(10);
 
 async function calcAndInsertAllDamageMatchups(iteration: number) {
-  const startTime = new Date();
+  const startTime = moment();
 
   const strategiesRes = await getPokemonStrategies();
   const strategies = strategiesRes.data;
@@ -28,7 +28,7 @@ async function calcAndInsertAllDamageMatchups(iteration: number) {
         const result = damageMatchup(strategies[i], strategies[j], customGameFormat, iteration);
         console.log(result)
   
-        // await sqlService.insertDamageMatchup(result);
+        await sqlService.insertDamageMatchup(result);
       } catch (e) {
         console.log(e);
         console.log('skip this matchup and continue...');
@@ -36,9 +36,8 @@ async function calcAndInsertAllDamageMatchups(iteration: number) {
     }
   }
   
-  const endTime = new Date();
-  console.log(`${endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds()} milliseconds`)
-  const duration = moment.duration(endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds());
+  const endTime = moment();
+  const duration = moment.duration(endTime.valueOf() - startTime.valueOf());
   logger.info('Finished all calculations!');
   logger.info(`Elapsed time: ${duration.hours()}h ${duration.minutes()}m ${duration.seconds()}s`);
 }
