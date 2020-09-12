@@ -13,5 +13,14 @@
       ],
       "program": "${workspaceFolder}\\calc-matchup-evaluations.js"
     }
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Damage array calc",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}\\calcDamageArray.js"
+    }
   ]
 }

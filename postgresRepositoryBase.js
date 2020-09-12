@@ -18,6 +18,9 @@ class PostgresRepositoryBase {
       this.client = new Client({
         // connectionString: process.env.DATABASE_URL,
         connectionString: postgresCredentials.databaseUrl,
+        ssl: {
+          rejectUnauthorized: false
+        }
       });
     }
 
