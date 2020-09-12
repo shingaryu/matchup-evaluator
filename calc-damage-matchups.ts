@@ -1,52 +1,21 @@
-// // Command-line Arguments
-// const program = require('commander');
-// program
-// .option('--net [action]', "'create' - generate a new network. 'update' - use and modify existing network. 'use' - use, but don't modify network. 'none' - use hardcoded weights. ['none']", 'none')
-// .option('-d --depth [depth]', "Minimax bot searches to this depth in the matchup evaluation. [2]", "2")
-// .option('--nolog', "Don't append to log files.")
-// .option('--onlyinfo [onlyinfo]', "Hide debug messages and speed up bot calculations", true)
-// .option('--usechildprocess', "Use child process to execute heavy calculations with parent process keeping the connection to showdown server.")
-// .option('-n, --numoftrials [numoftrials]', "Each matchup evaluation is iterated and averaged by the number of trials. [10]", "10")
-// .parse(process.argv);
+require('dotenv').config();
 
-type MoveDamage = {
-  move: string,
-  playerHPDiff: number,
-  targetHPDiff: number
-}
-
-type DamageMatchup = {
-  playerPoke: PokemonStrategy,
-  targetPoke: PokemonStrategy,
-  moveDamages: MoveDamage[]
-}
-
-// import {setCommanderGlobal} from './setCommanderGlobal';
 const { setCommanderGlobal } = require('./setCommanderGlobal');
 setCommanderGlobal();
-
-const { Dex, PcmBattle, Minimax, initLog4js, Util } = require('percymon');
-import moment from 'moment';
-// const SqlService = require('./sql-service').SqlService;
-// const getPokemonStrategies = require('./pokemonStrategiesApi').getPokemonStrategies;
-import { getPokemonStrategies } from './pokemonStrategiesApi';
-const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
-import * as math from 'mathjs';
-import PokemonStrategy from './models/PokemonStrategy';
-import Nature from './models/Nature';
-import Gender from './models/Gender';
-import { number } from 'mathjs';
-// import { SqlService } from './sql-service';
-const SqlService = require('./sql-service').SqlService;
-
-// Setup Logging
-// initLog4js(program.nolog, program.onlyinfo);
 const logger = require('log4js').getLogger("bot");
 
-calcDamageArray();
+const { Dex, PcmBattle, Util } = require('percymon');
+import moment from 'moment';
+import { getPokemonStrategies } from './pokemonStrategiesApi';
+const { SqlService } = require('./sql-service');
+// const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
+import PokemonStrategy from './models/PokemonStrategy';
+import DamageMatchup from './models/DamageMatchup';
+import MoveDamage from './models/MoveDamage';
 
-async function calcDamageArray () {
-  const iteration = 10;
+calcAndInsertAllDamageMatchups(10);
+
+async function calcAndInsertAllDamageMatchups(iteration: number) {
   const startTime = new Date();
 
   const strategiesRes = await getPokemonStrategies();
@@ -55,32 +24,26 @@ async function calcDamageArray () {
   const sqlService = new SqlService();
   for (let i = 0; i < strategies.length; i++) {
     for (let j = 0; j < strategies.length; j++) {   
-    // for (let i = 0; i < 4; i++) {
-    //   for (let j = 0; j < 4; j++) {   
-      // const myPoke = createPokemonSetFromStrategy(strategies[i]);
-      // const oppPoke = createPokemonSetFromStrategy(strategies[j]);
-      // validatePokemonSets(customGameFormat, [myPoke, oppPoke]);
       try {
-        const result = calcDamageMatrixWithSplash(strategies[i], strategies[j], customGameFormat, iteration);
+        const result = damageMatchup(strategies[i], strategies[j], customGameFormat, iteration);
         console.log(result)
   
-        await sqlService.insertDamageMatchup(result);
+        // await sqlService.insertDamageMatchup(result);
       } catch (e) {
         console.log(e);
         console.log('skip this matchup and continue...');
       }
     }
-    
   }
-
-   const endTime = new Date();
-   console.log(`${endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds()} milliseconds`)
-   const duration = moment.duration(endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds());
-   logger.info('Finished all calculations!');
-   logger.info(`Elapsed time: ${duration.hours()}h ${duration.minutes()}m ${duration.seconds()}s`);
+  
+  const endTime = new Date();
+  console.log(`${endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds()} milliseconds`)
+  const duration = moment.duration(endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds());
+  logger.info('Finished all calculations!');
+  logger.info(`Elapsed time: ${duration.hours()}h ${duration.minutes()}m ${duration.seconds()}s`);
 }
 
-function calcDamageMatrixWithSplash(playerPokeStr: PokemonStrategy, targetPokeStr: PokemonStrategy, gameFormat: any, iteration: number) {
+function damageMatchup(playerPokeStr: PokemonStrategy, targetPokeStr: PokemonStrategy, gameFormat: any, iteration: number) {
   const targetMock: PokemonStrategy = { ...targetPokeStr, move1: 'Splash', move2: "", move3: "", move4: "" };
 
   const myPoke = createPokemonSetFromStrategy(playerPokeStr);
@@ -97,13 +60,13 @@ function calcDamageMatrixWithSplash(playerPokeStr: PokemonStrategy, targetPokeSt
     const myHpRecoverResults: number[] = [];
     const oppHpRecoverResults: number[] = [];
     for (let j = 0; j < iteration; j++) {     
-      const battle1 = simulateMatchup(myPoke, oppPoke, i, gameFormat, false);
+      const battle1 = simulateSingleMatchup(myPoke, oppPoke, i, gameFormat, false);
       const myHpDiff = battle1.p1.pokemon[0].hp / battle1.p1.pokemon[0].maxhp * 100 - 100;
       const oppHpDiff = battle1.p2.pokemon[0].hp / battle1.p2.pokemon[0].maxhp * 100 - 100;
       myHpDamageResults.push(myHpDiff);
       oppHpDamageResults.push(oppHpDiff);
 
-      const battle2 = simulateMatchup(myPoke, oppPoke, i, gameFormat, true);
+      const battle2 = simulateSingleMatchup(myPoke, oppPoke, i, gameFormat, true);
       const myHpRecovery = (battle2.p1.pokemon[0].hp - 1) / battle2.p1.pokemon[0].maxhp * 100;
       const oppHpRecovery = (battle2.p2.pokemon[0].hp - 1) / battle2.p2.pokemon[0].maxhp * 100;
       myHpRecoverResults.push(myHpRecovery);
@@ -127,7 +90,7 @@ function calcDamageMatrixWithSplash(playerPokeStr: PokemonStrategy, targetPokeSt
   return result;
 }
 
-function simulateMatchup(myPoke: any, oppPoke: any, myMoveIndex: number, gameFormat: any, calcRecovery?: boolean) {
+function simulateSingleMatchup(myPoke: any, oppPoke: any, myMoveIndex: number, gameFormat: any, calcRecovery?: boolean) {
   const p1 = { name: 'botPlayer', avatar: 1, team: [myPoke] };
   const p2 = { name: 'humanPlayer', avatar: 1, team: [oppPoke] };								
   const battleOptions = { format: gameFormat, rated: false, send: null, p1, p2 };

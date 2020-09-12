@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Simulate and evaluate each Pokemon matchup by using Percymon battle engine",
   "scripts": {
-    "start": "node -r ts-node/register calcDamageArraySplash.ts",
+    "dma": "node -r ts-node/register calc-damage-matchups.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "shingaryu",
@@ -14,8 +14,8 @@
     "@types/node": "^14.10.1",
     "axios": "^0.20.0",
     "commander": "^5.1.0",
+    "dotenv": "^8.2.0",
     "log4js": "^1.1.1",
-    "mathjs": "^7.2.0",
     "moment": "^2.27.0",
     "percymon": "git+https://github.com/shingaryu/showdownbot.git#develop",
     "pg": "^8.3.0",

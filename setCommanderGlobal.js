@@ -14,7 +14,7 @@ function setCommanderGlobal() {
   const { initLog4js } = require('percymon');
 
   //Setup Logging
-  initLog4js(program.nolog, program.onlyinfo);
+  initLog4js(global.program.nolog, global.program.onlyinfo);
 }
 
 module.exports.setCommanderGlobal = setCommanderGlobal;
