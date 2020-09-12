@@ -53,22 +53,28 @@ async function calcDamageArray () {
   const strategies = strategiesRes.data;
   const customGameFormat = createCustomGameFormat();
   const sqlService = new SqlService();
-  // for (let i = 0; i < strategies.length; i++) {
-  //   for (let j = 0; j < strategies.length; j++) {   
-    for (let i = 0; i < 10; i++) {
-      for (let j = 0; j < 10; j++) {   
+  for (let i = 0; i < strategies.length; i++) {
+    for (let j = 0; j < strategies.length; j++) {   
+    // for (let i = 0; i < 4; i++) {
+    //   for (let j = 0; j < 4; j++) {   
       // const myPoke = createPokemonSetFromStrategy(strategies[i]);
       // const oppPoke = createPokemonSetFromStrategy(strategies[j]);
       // validatePokemonSets(customGameFormat, [myPoke, oppPoke]);
-      const result = calcDamageMatrixWithSplash(strategies[i], strategies[j], customGameFormat, iteration);
-      console.log(result)
-
-      await sqlService.insertDamageMatchup(result);
+      try {
+        const result = calcDamageMatrixWithSplash(strategies[i], strategies[j], customGameFormat, iteration);
+        console.log(result)
+  
+        await sqlService.insertDamageMatchup(result);
+      } catch (e) {
+        console.log(e);
+        console.log('skip this matchup and continue...');
+      }
     }
     
   }
 
    const endTime = new Date();
+   console.log(`${endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds()} milliseconds`)
    const duration = moment.duration(endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds());
    logger.info('Finished all calculations!');
    logger.info(`Elapsed time: ${duration.hours()}h ${duration.minutes()}m ${duration.seconds()}s`);
@@ -85,46 +91,29 @@ function calcDamageMatrixWithSplash(playerPokeStr: PokemonStrategy, targetPokeSt
   const damages: MoveDamage[] = [];
 
   logger.info(`evaluate about ${myPoke.species} vs ${oppPoke.species}`);
-  for (let i = 0; i < myChoiceNum; i++) {
-    const myHpDiffResults: number[] = [];
-    const oppHpDiffResults: number[] = [];
+  for (let i = 0; i < myChoiceNum; i++) {      
+    const myHpDamageResults: number[] = [];
+    const oppHpDamageResults: number[] = [];
+    const myHpRecoverResults: number[] = [];
+    const oppHpRecoverResults: number[] = [];
     for (let j = 0; j < iteration; j++) {     
-      const p1 = { name: 'botPlayer', avatar: 1, team: [myPoke] };
-      const p2 = { name: 'humanPlayer', avatar: 1, team: [oppPoke] };								
-      const battleOptions = { format: gameFormat, rated: false, send: null, p1, p2 };
-      const battle = new PcmBattle(battleOptions);
-      battle.start();              
-      battle.makeRequest();                   
-      
-      const choicesP1 = Util.parseRequest(battle.p1.request).choices;
-      const choicesP2 = Util.parseRequest(battle.p2.request).choices;   
-      const filtChoicesP1 = choicesP1.filter((choice: any) => choice.type == "move" && !choice.runDynamax); 
-      const filtChoicesP2 = choicesP2.filter((choice: any) => choice.type == "move" && !choice.runDynamax); 
-  
-      battle.choose('p1', Util.toChoiceString(filtChoicesP1[i], battle.p1), battle.rqid);
-      battle.choose('p2', Util.toChoiceString(filtChoicesP2[0], battle.p2), battle.rqid);
-      logger.trace("Player action: " + Util.toChoiceString(filtChoicesP1[i], battle.p1));
-      logger.trace("Opponent action: " + Util.toChoiceString(filtChoicesP2[0], battle.p2));
-      logger.trace("My Resulting Health:");
-      for(let k = 0; k < battle.p1.pokemon.length; k++) {
-          logger.trace(battle.p1.pokemon[k].species.name + ": " + battle.p1.pokemon[k].hp + "/" + battle.p1.pokemon[k].maxhp);
-      }
-      logger.trace("Opponent's Resulting Health:");
-      for(let k = 0; k < battle.p2.pokemon.length; k++) {
-          logger.trace(battle.p2.pokemon[k].species.name + ": " + battle.p2.pokemon[k].hp + "/" + battle.p2.pokemon[k].maxhp);
-      }
-  
-      const myHpDiff = battle.p1.pokemon[0].hp / battle.p1.pokemon[0].maxhp * 100 - 100;
-      const oppHpDiff = battle.p2.pokemon[0].hp / battle.p2.pokemon[0].maxhp * 100 - 100;
+      const battle1 = simulateMatchup(myPoke, oppPoke, i, gameFormat, false);
+      const myHpDiff = battle1.p1.pokemon[0].hp / battle1.p1.pokemon[0].maxhp * 100 - 100;
+      const oppHpDiff = battle1.p2.pokemon[0].hp / battle1.p2.pokemon[0].maxhp * 100 - 100;
+      myHpDamageResults.push(myHpDiff);
+      oppHpDamageResults.push(oppHpDiff);
 
-      myHpDiffResults.push(myHpDiff);
-      oppHpDiffResults.push(oppHpDiff);
+      const battle2 = simulateMatchup(myPoke, oppPoke, i, gameFormat, true);
+      const myHpRecovery = (battle2.p1.pokemon[0].hp - 1) / battle2.p1.pokemon[0].maxhp * 100;
+      const oppHpRecovery = (battle2.p2.pokemon[0].hp - 1) / battle2.p2.pokemon[0].maxhp * 100;
+      myHpRecoverResults.push(myHpRecovery);
+      oppHpRecoverResults.push(oppHpRecovery);
     }
     
     const damage: MoveDamage = {
       move: myMoves[i],
-      playerHPDiff: average(myHpDiffResults),
-      targetHPDiff: average(oppHpDiffResults)
+      playerHPDiff: average(myHpDamageResults) + average(myHpRecoverResults),
+      targetHPDiff: average(oppHpDamageResults) + average(oppHpRecoverResults)
     }
 
     damages.push(damage);
@@ -138,6 +127,37 @@ function calcDamageMatrixWithSplash(playerPokeStr: PokemonStrategy, targetPokeSt
   return result;
 }
 
+function simulateMatchup(myPoke: any, oppPoke: any, myMoveIndex: number, gameFormat: any, calcRecovery?: boolean) {
+  const p1 = { name: 'botPlayer', avatar: 1, team: [myPoke] };
+  const p2 = { name: 'humanPlayer', avatar: 1, team: [oppPoke] };								
+  const battleOptions = { format: gameFormat, rated: false, send: null, p1, p2 };
+  const battle = new PcmBattle(battleOptions);
+  if (calcRecovery) {
+    ReducePokemonHP(battle);
+  }
+  battle.start();              
+  battle.makeRequest();                   
+  
+  const choicesP1 = Util.parseRequest(battle.p1.request).choices;
+  const choicesP2 = Util.parseRequest(battle.p2.request).choices;   
+  const filtChoicesP1 = choicesP1.filter((choice: any) => choice.type == "move" && !choice.runDynamax); 
+  const filtChoicesP2 = choicesP2.filter((choice: any) => choice.type == "move" && !choice.runDynamax); 
+
+  battle.choose('p1', Util.toChoiceString(filtChoicesP1[myMoveIndex], battle.p1), battle.rqid);
+  battle.choose('p2', Util.toChoiceString(filtChoicesP2[0], battle.p2), battle.rqid);
+  logger.trace("Player action: " + Util.toChoiceString(filtChoicesP1[myMoveIndex], battle.p1));
+  logger.trace("Opponent action: " + Util.toChoiceString(filtChoicesP2[0], battle.p2));
+  logger.trace("My Resulting Health:");
+  for(let k = 0; k < battle.p1.pokemon.length; k++) {
+      logger.trace(battle.p1.pokemon[k].species.name + ": " + battle.p1.pokemon[k].hp + "/" + battle.p1.pokemon[k].maxhp);
+  }
+  logger.trace("Opponent's Resulting Health:");
+  for(let k = 0; k < battle.p2.pokemon.length; k++) {
+      logger.trace(battle.p2.pokemon[k].species.name + ": " + battle.p2.pokemon[k].hp + "/" + battle.p2.pokemon[k].maxhp);
+  }
+
+  return battle;
+}
 
 function createCustomGameFormat() {
   const customGameFormat = Dex.getFormat(`gen8customgame`, true);
@@ -152,7 +172,7 @@ function createPokemonSetFromStrategy(obj: PokemonStrategy) {
     obj.species,
     obj.item, 
     obj.ability, 
-    obj.nature.toString(), 
+    obj.nature ? obj.nature.toString(): '', 
     obj.move1, 
     obj.move2, 
     obj.move3, 
@@ -241,4 +261,33 @@ function average(values: number[]) {
 	let sum = 0;
 	values.forEach(value => sum += value);
 	return sum / values.length;
+}
+
+function ReducePokemonHP(battle: any) {
+  // battle.p1.pokemon[0].hp = Math.round(battle.p1.pokemon[0].maxhp / 2);
+  // battle.p2.pokemon[0].hp = Math.round(battle.p2.pokemon[0].maxhp / 2);
+  // battle.p1.pokemon[0].hp = battle.p1.pokemon[0].maxhp / 2;
+  // battle.p2.pokemon[0].hp = battle.p2.pokemon[0].maxhp / 2;
+  battle.p1.pokemon[0].hp = battle.p1.pokemon[0].hp = 1;
+  battle.p2.pokemon[0].hp = battle.p2.pokemon[0].hp = 1;
+
+  updatePokemon(battle.p1, battle.p1.pokemon[0]);
+  updatePokemon(battle.p2, battle.p2.pokemon[0]);
+}
+
+//given a player and a pokemon, updates that pokemon in the battleside object
+function updatePokemon(battleside: any, pokemon: any) {
+  for(let i = 0; i < battleside.pokemon.length; i++) {
+      if(battleside.pokemon[i].name === pokemon.name) {
+          battleside.pokemon[i] = pokemon;
+          return;
+      }
+  }
+  logger.info("Could not find " + pokemon.name + " in the battle side, creating new Pokemon.");
+  for(let i = battleside.pokemon.length - 1; i >= 0; i--) {
+      if(battleside.pokemon[i].name === "Bulbasaur") {
+          battleside.pokemon[i] = pokemon;
+          return;
+      }
+  }
 }
