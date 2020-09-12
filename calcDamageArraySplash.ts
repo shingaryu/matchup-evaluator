@@ -9,6 +9,18 @@
 // .option('-n, --numoftrials [numoftrials]', "Each matchup evaluation is iterated and averaged by the number of trials. [10]", "10")
 // .parse(process.argv);
 
+type MoveDamage = {
+  move: string,
+  playerHPDiff: number,
+  targetHPDiff: number
+}
+
+type DamageMatchup = {
+  playerPoke: PokemonStrategy,
+  targetPoke: PokemonStrategy,
+  moveDamages: MoveDamage[]
+}
+
 // import {setCommanderGlobal} from './setCommanderGlobal';
 const { setCommanderGlobal } = require('./setCommanderGlobal');
 setCommanderGlobal();
@@ -16,9 +28,16 @@ setCommanderGlobal();
 const { Dex, PcmBattle, Minimax, initLog4js, Util } = require('percymon');
 import moment from 'moment';
 // const SqlService = require('./sql-service').SqlService;
-const getPokemonStrategies = require('./pokemonStrategiesApi').getPokemonStrategies;
+// const getPokemonStrategies = require('./pokemonStrategiesApi').getPokemonStrategies;
+import { getPokemonStrategies } from './pokemonStrategiesApi';
 const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
 import * as math from 'mathjs';
+import PokemonStrategy from './models/PokemonStrategy';
+import Nature from './models/Nature';
+import Gender from './models/Gender';
+import { number } from 'mathjs';
+// import { SqlService } from './sql-service';
+const SqlService = require('./sql-service').SqlService;
 
 // Setup Logging
 // initLog4js(program.nolog, program.onlyinfo);
@@ -27,61 +46,27 @@ const logger = require('log4js').getLogger("bot");
 calcDamageArray();
 
 async function calcDamageArray () {
+  const iteration = 10;
   const startTime = new Date();
 
-  const strategies = await getPokemonStrategies();
-  const myPoke = createPokemonSetFromStrategy(strategies.data[3]);
-  const oppPoke = createPokemonSetFromStrategy(strategies.data[7]);
-
+  const strategiesRes = await getPokemonStrategies();
+  const strategies = strategiesRes.data;
   const customGameFormat = createCustomGameFormat();
-  validatePokemonSets(customGameFormat, [myPoke, oppPoke]);
-     
-  logger.info(`evaluate about ${myPoke.species} vs ${oppPoke.species}`);
+  const sqlService = new SqlService();
+  // for (let i = 0; i < strategies.length; i++) {
+  //   for (let j = 0; j < strategies.length; j++) {   
+    for (let i = 0; i < 10; i++) {
+      for (let j = 0; j < 10; j++) {   
+      // const myPoke = createPokemonSetFromStrategy(strategies[i]);
+      // const oppPoke = createPokemonSetFromStrategy(strategies[j]);
+      // validatePokemonSets(customGameFormat, [myPoke, oppPoke]);
+      const result = calcDamageMatrixWithSplash(strategies[i], strategies[j], customGameFormat, iteration);
+      console.log(result)
 
-  const p1 = { name: 'botPlayer', avatar: 1, team: [myPoke] };
-  const p2 = { name: 'humanPlayer', avatar: 1, team: [oppPoke] };								
-  const battleOptions = { format: customGameFormat, rated: false, send: null, p1, p2 };
-  const battle = new PcmBattle(battleOptions);
-  battle.start();              
-  battle.makeRequest();                   
-  const choicesP1 = Util.parseRequest(battle.p1.request).choices;
-  const choicesP2 = Util.parseRequest(battle.p2.request).choices;
-
-  const filtChoicesP1 = choicesP1.filter((choice: any) => choice.type == "move" && !choice.runDynamax); 
-  const filtChoicesP2 = choicesP2.filter((choice: any) => choice.type == "move" && !choice.runDynamax); 
-  // calcTwoToTwoDamageArray(myPoke, oppPoke, [filtChoicesP1[0], filtChoicesP1[1]], [filtChoicesP2[0], filtChoicesP2[1]], customGameFormat);
-  const result = calcFourToFourDamageMatrix(myPoke, oppPoke, filtChoicesP1, filtChoicesP2, customGameFormat);
-  const x = calcAveragedDamageArray(result.matrix, result.vector, [0, 1, 2, 3], [0, 1, 2]);
-
-  for (let i = 0; i < 8; i += 2) {
-    const move = filtChoicesP1[i / 2];
-    const PlayerDamageDiff = x[i];
-    const oppDamageDiff = x[i + 1];
-    console.log(`move: ${move.id}, player HP: ${PlayerDamageDiff}, opp HP: ${oppDamageDiff}`);   
+      await sqlService.insertDamageMatchup(result);
+    }
+    
   }
-
-  console.log();
-
-  for (let i = 8; i < 16; i += 2) {
-    const move = filtChoicesP2[(i - 8) / 2];
-    const PlayerDamageDiff = x[i];
-    const oppDamageDiff = x[i + 1];
-    console.log(`move: ${move.id}, player HP: ${PlayerDamageDiff}, opp HP: ${oppDamageDiff}`);   
-  }
-
-
-  // battle.choose('p1', Util.toChoiceString(choicesP1[0], battle.p1), battle.rqid);
-  // battle.choose('p2', Util.toChoiceString(choicesP2[0], battle.p2), battle.rqid);
-  // logger.trace("Player action: " + Util.toChoiceString(choicesP1[0] || '(wait)', battle.p1));
-  // logger.trace("Opponent action: " + Util.toChoiceString(choicesP2[0], battle.p2));
-  // logger.trace("My Resulting Health:");
-  // for(let k = 0; k < battle.p1.pokemon.length; k++) {
-  //     logger.trace(battle.p1.pokemon[k].species.name + ": " + battle.p1.pokemon[k].hp + "/" + battle.p1.pokemon[k].maxhp);
-  // }
-  // logger.trace("Opponent's Resulting Health:");
-  // for(let k = 0; k < battle.p2.pokemon.length; k++) {
-  //     logger.trace(battle.p2.pokemon[k].species.name + ": " + battle.p2.pokemon[k].hp + "/" + battle.p2.pokemon[k].maxhp);
-  // }
 
    const endTime = new Date();
    const duration = moment.duration(endTime.getUTCMilliseconds() - startTime.getUTCMilliseconds());
@@ -89,69 +74,21 @@ async function calcDamageArray () {
    logger.info(`Elapsed time: ${duration.hours()}h ${duration.minutes()}m ${duration.seconds()}s`);
 }
 
-function calcAveragedDamageArray(matrix: any, vector: any, myStandardMoveIndices: any, oppStandardMoveIndices: any) {
-  const indices: any[] = [];
-  myStandardMoveIndices.forEach((x: any) => indices.push({i: x, isMyChoice: true}));
-  oppStandardMoveIndices.forEach((x: any) => indices.push({i: x, isMyChoice: false}));
+function calcDamageMatrixWithSplash(playerPokeStr: PokemonStrategy, targetPokeStr: PokemonStrategy, gameFormat: any, iteration: number) {
+  const targetMock: PokemonStrategy = { ...targetPokeStr, move1: 'Splash', move2: "", move3: "", move4: "" };
 
-  const ind = Math.floor(math.random(0, indices.length));
-  const firstMove = indices[ind];
-  const newIndices = indices.filter((x: any, i: number) => i !== ind);
-  const secondInd = Math.floor(math.random(0, newIndices.length));
-  const secondMove = newIndices[secondInd];
+  const myPoke = createPokemonSetFromStrategy(playerPokeStr);
+  const oppPoke = createPokemonSetFromStrategy(targetMock);
 
-  const solutionVector1 = [];
-  for (let k = 0; k < 16; k++) {
-    if (firstMove.isMyChoice && k === 2 * firstMove.i) {
-      solutionVector1.push(1);
-    } else if (!firstMove.isMyChoice && k === 2 * firstMove.i + 8 + 1) {
-      solutionVector1.push(1);
-    } else {
-      solutionVector1.push(0);
-    }
-  }
-  matrix.push(solutionVector1);
-  vector.push(0);
-
-  const solutionVector2 = [];
-  for (let k = 0; k < 16; k++) {
-    if (secondMove.isMyChoice && k === 2 * secondMove.i) {
-      solutionVector2.push(1);
-    } else if (!secondMove.isMyChoice && k === 2 * secondMove.i + 8 + 1) {
-      solutionVector2.push(1);
-    } else {
-      solutionVector2.push(0);
-    }
-  }
-  matrix.push(solutionVector2);
-  vector.push(0);
-
-  const inverse = math.inv(matrix);
-  const x = math.multiply(inverse, vector);
-
-  console.log(x);
-
-  return x;
-}
-
-function calcFourToFourDamageMatrix(myPoke: any, oppPoke: any, myChoices: any, oppChoices: any, gameFormat: any) {
-  const damageMatrix = []; // 14 x 16
-  const damageVector = []; // 14
-  const zeros = [];
-  for (let i = 0; i < 16; i++) {
-    zeros.push(0);
-  }
+  const myChoiceNum = myPoke.moves.length;
+  const myMoves = [playerPokeStr.move1, playerPokeStr.move2, playerPokeStr.move3, playerPokeStr.move4];
+  const damages: MoveDamage[] = [];
 
   logger.info(`evaluate about ${myPoke.species} vs ${oppPoke.species}`);
-  for (let i = 0; i < myChoices.length; i++) {
-    const myChoice = myChoices[i];
-    for (let j = 0; j < oppChoices.length; j++) {
-      if (i >= 1 && j >= 1) {
-        continue;
-      }
-
-      const oppChoice = oppChoices[j];
-      
+  for (let i = 0; i < myChoiceNum; i++) {
+    const myHpDiffResults: number[] = [];
+    const oppHpDiffResults: number[] = [];
+    for (let j = 0; j < iteration; j++) {     
       const p1 = { name: 'botPlayer', avatar: 1, team: [myPoke] };
       const p2 = { name: 'humanPlayer', avatar: 1, team: [oppPoke] };								
       const battleOptions = { format: gameFormat, rated: false, send: null, p1, p2 };
@@ -159,10 +96,15 @@ function calcFourToFourDamageMatrix(myPoke: any, oppPoke: any, myChoices: any, o
       battle.start();              
       battle.makeRequest();                   
       
-      battle.choose('p1', Util.toChoiceString(myChoice, battle.p1), battle.rqid);
-      battle.choose('p2', Util.toChoiceString(oppChoice, battle.p2), battle.rqid);
-      logger.trace("Player action: " + Util.toChoiceString(myChoice, battle.p1));
-      logger.trace("Opponent action: " + Util.toChoiceString(oppChoice, battle.p2));
+      const choicesP1 = Util.parseRequest(battle.p1.request).choices;
+      const choicesP2 = Util.parseRequest(battle.p2.request).choices;   
+      const filtChoicesP1 = choicesP1.filter((choice: any) => choice.type == "move" && !choice.runDynamax); 
+      const filtChoicesP2 = choicesP2.filter((choice: any) => choice.type == "move" && !choice.runDynamax); 
+  
+      battle.choose('p1', Util.toChoiceString(filtChoicesP1[i], battle.p1), battle.rqid);
+      battle.choose('p2', Util.toChoiceString(filtChoicesP2[0], battle.p2), battle.rqid);
+      logger.trace("Player action: " + Util.toChoiceString(filtChoicesP1[i], battle.p1));
+      logger.trace("Opponent action: " + Util.toChoiceString(filtChoicesP2[0], battle.p2));
       logger.trace("My Resulting Health:");
       for(let k = 0; k < battle.p1.pokemon.length; k++) {
           logger.trace(battle.p1.pokemon[k].species.name + ": " + battle.p1.pokemon[k].hp + "/" + battle.p1.pokemon[k].maxhp);
@@ -171,40 +113,31 @@ function calcFourToFourDamageMatrix(myPoke: any, oppPoke: any, myChoices: any, o
       for(let k = 0; k < battle.p2.pokemon.length; k++) {
           logger.trace(battle.p2.pokemon[k].species.name + ": " + battle.p2.pokemon[k].hp + "/" + battle.p2.pokemon[k].maxhp);
       }
-
+  
       const myHpDiff = battle.p1.pokemon[0].hp / battle.p1.pokemon[0].maxhp * 100 - 100;
       const oppHpDiff = battle.p2.pokemon[0].hp / battle.p2.pokemon[0].maxhp * 100 - 100;
-      
-      // equation1: my hp diff
-      const damageRow1 = [];
-      for (let k = 0; k < (myChoices.length * 2 + oppChoices.length * 2); k++) {
-        if (k === 2 * i || k === (2 * j + myChoices.length * 2)) {
-          damageRow1.push(1);
-        } else {
-          damageRow1.push(0);
-        }
-      }
 
-      // equation2: opp hp diff
-      const damageRow2 = [];
-      for (let k = 0; k < (myChoices.length * 2 + oppChoices.length * 2); k++) {
-        if (k === (2 * i + 1) || k === (2 * j + myChoices.length * 2 + 1)) {
-          damageRow2.push(1);
-        } else {
-          damageRow2.push(0);
-        }
-      }
-
-      damageMatrix.push(damageRow1);
-      damageMatrix.push(damageRow2);
-
-      damageVector.push(myHpDiff);
-      damageVector.push(oppHpDiff);
+      myHpDiffResults.push(myHpDiff);
+      oppHpDiffResults.push(oppHpDiff);
     }
-  }
+    
+    const damage: MoveDamage = {
+      move: myMoves[i],
+      playerHPDiff: average(myHpDiffResults),
+      targetHPDiff: average(oppHpDiffResults)
+    }
 
-  return { matrix: damageMatrix, vector: damageVector};
+    damages.push(damage);
+  }
+  const result: DamageMatchup = {
+    playerPoke: playerPokeStr,
+    targetPoke: targetPokeStr,
+    moveDamages: damages
+  }
+  
+  return result;
 }
+
 
 function createCustomGameFormat() {
   const customGameFormat = Dex.getFormat(`gen8customgame`, true);
@@ -214,12 +147,12 @@ function createCustomGameFormat() {
   return customGameFormat;
 }
 
-function createPokemonSetFromStrategy(obj: any) {
+function createPokemonSetFromStrategy(obj: PokemonStrategy) {
   const myPoke = createPokemonSet(
     obj.species,
     obj.item, 
     obj.ability, 
-    obj.nature, 
+    obj.nature.toString(), 
     obj.move1, 
     obj.move2, 
     obj.move3, 
@@ -230,7 +163,7 @@ function createPokemonSetFromStrategy(obj: any) {
     obj.ev_spa, 
     obj.ev_spd, 
     obj.ev_spe, 
-    obj.gender, 
+    obj.gender ? obj.gender.toString(): null, 
     obj.iv_hp,
     obj.iv_atk, 
     obj.iv_def, 
@@ -265,7 +198,7 @@ function createPokemonSet(
   iv_spa: number, 
   iv_spd: number, 
   iv_spe: number,
-  happiness: string | null
+  happiness: number | null
 ) {
 
   const set = {
@@ -302,4 +235,10 @@ function createPokemonSet(
   }
 
   return set
+}
+
+function average(values: number[]) {
+	let sum = 0;
+	values.forEach(value => sum += value);
+	return sum / values.length;
 }

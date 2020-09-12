@@ -12,7 +12,7 @@
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}\\calc-matchup-evaluations.js"
-    }
+    },
     {
       "type": "node",
       "request": "launch",
@@ -21,6 +21,19 @@
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}\\calcDamageArray.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Damage array calc (typescript)",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "program": "${workspaceFolder}\\calcDamageArraySplash.ts"
     }
   ]
 }

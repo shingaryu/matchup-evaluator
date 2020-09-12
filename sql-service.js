@@ -153,6 +153,36 @@ class SqlService extends PostgresRepositoryBase {
     return this.sqlQueryPromise(sql);
   }
 
+  async insertDamageMatchup(damageMatchup) {
+    const damageMatchupId = uuidv4();
+
+    const sql = `
+      INSERT INTO damage_matchups VALUES (
+        '${damageMatchupId}',
+        '${damageMatchup.playerPoke.id}',
+        '${damageMatchup.targetPoke.id}'
+      )
+    `
+    await this.sqlQueryPromise(sql);
+
+    for (let i = 0; i < damageMatchup.moveDamages.length; i++) {
+      await this.insertMoveDamage(damageMatchupId, damageMatchup.moveDamages[i]);
+    }
+  }
+
+  insertMoveDamage(damageMatchupId, moveDamage) {
+    const sql = `
+      INSERT INTO move_damages VALUES (
+        '${uuidv4()}',
+        '${damageMatchupId}',
+        ${this.escapeOrNull(moveDamage.move)},
+        '${moveDamage.playerHPDiff}',
+        '${moveDamage.targetHPDiff}'
+      )
+    `
+    return this.sqlQueryPromise(sql);
+  }
+
   // Note: return with single quotation
   escapeOrNull(text) {
     if (!text) {
