@@ -13,7 +13,7 @@ import PokemonStrategy from './models/PokemonStrategy';
 import DamageMatchup from './models/DamageMatchup';
 import MoveDamage from './models/MoveDamage';
 
-calcAndInsertAllDamageMatchups(10);
+calcAndInsertAllDamageMatchups(1);
 
 async function calcAndInsertAllDamageMatchups(iteration: number) {
   const startTime = moment();
@@ -22,8 +22,8 @@ async function calcAndInsertAllDamageMatchups(iteration: number) {
   const strategies = strategiesRes.data;
   const customGameFormat = createCustomGameFormat();
   const sqlService = new SqlService();
-  for (let i = 0; i < strategies.length; i++) {
-    for (let j = 0; j < strategies.length; j++) {   
+  for (let i = 0; i < 12; i++) {
+    for (let j = 0; j < 30; j++) {   
       try {
         const result = damageMatchup(strategies[i], strategies[j], customGameFormat, iteration);
         console.log(result)
