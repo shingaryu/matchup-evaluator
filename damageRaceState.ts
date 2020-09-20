@@ -184,10 +184,14 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
         return true;
       }
 
-      const damageMatchupPToO = matchups.find(x => x.targetPoke.id === opponentActive.pokemonStrategy.id);
+      const damageMatchupPToO = matchups.find(x => 
+        (x.playerPoke.id === playerActive.pokemonStrategy.id) && (x.targetPoke.id === opponentActive.pokemonStrategy.id));
+      if (!damageMatchupPToO) {
+        throw new Error('Error: corresponding damage matchup was not found');
+      } 
       const moveDamage = damageMatchupPToO.moveDamages[choice.moveSlot];
       if (moveDamage.move !== choice.moveName) {
-        new Error('Error: move name is not match between damage matchup and choice');
+        throw new Error('Error: move name is not match between damage matchup and choice');
       } 
 
       playerActive.hpRatio += moveDamage.playerHPDiff;

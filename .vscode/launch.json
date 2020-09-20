@@ -34,6 +34,19 @@
         "ts-node/register"
       ],
       "program": "${workspaceFolder}\\calcDamageArraySplash.ts"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Damage minimax (typescript)",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "program": "${workspaceFolder}\\damageMinimaxTest.ts"
     }
   ]
 }

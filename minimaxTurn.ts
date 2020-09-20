@@ -27,7 +27,7 @@ export class MinimaxTurn<T> {
   protected myValidChoices: T[];
   protected foesValidChoices: T[];
 
-    constructor(gameState: GameState<T>, isSubTree: boolean, isEnd: boolean) {
+    constructor(gameState: GameState<T>, isSubTree = false, isEnd = false) {
         this.isSubTree = isSubTree;
         this.gameState = gameState;
         this.isEnd = isEnd;
