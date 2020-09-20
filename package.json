@@ -4,6 +4,7 @@
   "description": "Simulate and evaluate each Pokemon matchup by using Percymon battle engine",
   "scripts": {
     "dma": "node -r ts-node/register calc-damage-matchups.ts",
+    "dmm": "node -r ts-node/register damageMinimaxTest.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "shingaryu",

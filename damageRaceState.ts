@@ -41,8 +41,8 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
   playerPokemon: DamageRacePokemon[];
   opponentPokemon: DamageRacePokemon[];
 
-  storedPlayerChoice: DamageRaceChoice;
-  storedOpponentChoice: DamageRaceChoice;
+  storedPlayerChoice: DamageRaceChoice | null;
+  storedOpponentChoice: DamageRaceChoice | null;
   isChoicesReady: boolean;
   playerChoiceRequest: ChoiceRequest;
   opponentChoiceRequest: ChoiceRequest;
@@ -60,6 +60,10 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
 
     this.playerChoiceRequest = { canMove: true, canSwitch: true};
     this.opponentChoiceRequest = { canMove: true, canSwitch: true};
+
+    this.storedPlayerChoice = null;
+    this.storedOpponentChoice = null;
+    this.isChoicesReady = false;
   }
 
   playerChoices(): DamageRaceChoice[] {
@@ -82,6 +86,7 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
 
     if (request.canSwitch) {
       const alivePokemonindices = pokemon.map((x, i) => ({poke: x, i: i}))
+      .filter((x) => x.poke !== active)
       .filter((x) => !x.poke.isFainted)
       .map(x => x.i);
 
@@ -147,17 +152,23 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
     this.processAfterMoveRequest();
   }
 
-  processSwitchPhase(playerChoice: DamageRaceChoice, opponentChoice: DamageRaceChoice): boolean {
+  processSwitchPhase(playerChoice: DamageRaceChoice | null, opponentChoice: DamageRaceChoice | null): boolean {
     // todo: speed priorities
 
-    if (playerChoice.type === 0) {
+    if (playerChoice?.type === 1) {
       // this.playerActiveSlot = playerChoice.switchTo;
+      if (!playerChoice.switchTo) {
+        throw new Error('Error: switchTo is not defined');
+      }
       this.playerActive = this.playerPokemon[playerChoice.switchTo];
       this.storedPlayerChoice = null;
     }
 
-    if (opponentChoice.type === 0) {
+    if (opponentChoice?.type === 1) {
       // this.opponentActiveSlot = opponentChoice.switchTo;
+      if (!opponentChoice.switchTo) {
+        throw new Error('Error: switchTo is not defined');
+      }
       this.opponentActive = this.opponentPokemon[opponentChoice.switchTo];
       this.storedOpponentChoice = null;
     }
@@ -168,17 +179,17 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
   processMovePhase(): boolean {
     // todo: speed priorities
 
-    this.processMoveChoice(this.storedOpponentChoice, this.damageMatchupsPlayer, this.playerActive, this.opponentActive);
+    this.processMoveChoice(this.storedPlayerChoice, this.damageMatchupsPlayer, this.playerActive, this.opponentActive);
     this.storedPlayerChoice = null;
 
-    this.processMoveChoice(this.storedPlayerChoice, this.damageMatchupsOpponent, this.opponentActive, this.playerActive);
+    this.processMoveChoice(this.storedOpponentChoice, this.damageMatchupsOpponent, this.opponentActive, this.playerActive);
     this.storedOpponentChoice = null;
 
     return true;
   }
 
-  processMoveChoice(choice: DamageRaceChoice, matchups: DamageMatchup[], playerActive: DamageRacePokemon, opponentActive: DamageRacePokemon, ): boolean {
-    if (choice.type === 1) {
+  processMoveChoice(choice: DamageRaceChoice | null, matchups: DamageMatchup[], playerActive: DamageRacePokemon, opponentActive: DamageRacePokemon, ): boolean {
+    if (choice?.type === 0) {
       this.storedPlayerChoice = null;
       if (this.playerActive.isFainted || this.opponentActive.isFainted) {
         return true;
@@ -188,7 +199,10 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
         (x.playerPoke.id === playerActive.pokemonStrategy.id) && (x.targetPoke.id === opponentActive.pokemonStrategy.id));
       if (!damageMatchupPToO) {
         throw new Error('Error: corresponding damage matchup was not found');
-      } 
+      }
+      if (choice.moveSlot == undefined) {
+        throw new Error('Error: moveSlot is not defined');
+      }
       const moveDamage = damageMatchupPToO.moveDamages[choice.moveSlot];
       if (moveDamage.move !== choice.moveName) {
         throw new Error('Error: move name is not match between damage matchup and choice');
@@ -232,16 +246,37 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
   }
 
   clone(): DamageRaceState {
-    // let obj = new DamageRaceState();
+    const obj = new DamageRaceState(this.damageMatchupsPlayer, this.damageMatchupsOpponent, 
+      this.playerPokemon.map(x => x.pokemonStrategy), this.opponentPokemon.map(x => x.pokemonStrategy));
     // obj.damageMatchupsOpponent = this.damageMatchupsPlayer;
     // obj.damageMatchupsOpponent = this.damageMatchupsOpponent;
     
     const playerActiveSlot = this.playerPokemon.indexOf(this.playerActive);
     const opponentActiveSlot = this.opponentPokemon.indexOf(this.opponentActive);
     
-    const obj: DamageRaceState = JSON.parse(JSON.stringify(this));
+    // const obj: DamageRaceState = JSON.parse(JSON.stringify(this));
+    // obj.playerActive = obj.playerPokemon[playerActiveSlot];
+    // obj.opponentActive = obj.opponentPokemon[opponentActiveSlot];    
+
+    obj.playerPokemon = this.playerPokemon.map(x => ({ ...x }));
+    obj.opponentPokemon = this.opponentPokemon.map(x => ({...x}));
     obj.playerActive = obj.playerPokemon[playerActiveSlot];
     obj.opponentActive = obj.opponentPokemon[opponentActiveSlot];    
+
+    obj.playerChoiceRequest = Object.assign({}, this.playerChoiceRequest);
+    obj.opponentChoiceRequest = Object.assign({}, this.opponentChoiceRequest);
+
+    obj.storedPlayerChoice = null;
+    if (this.storedPlayerChoice) {
+      obj.storedPlayerChoice = Object.assign({}, this.storedPlayerChoice);
+    }
+
+    obj.storedOpponentChoice = null;
+    if (this.storedOpponentChoice) {
+      obj.storedOpponentChoice = Object.assign({}, this.storedOpponentChoice);
+    }
+
+    obj.isChoicesReady = this.isChoicesReady;
 
     return obj;
   }

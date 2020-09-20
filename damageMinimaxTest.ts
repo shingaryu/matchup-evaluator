@@ -13,8 +13,8 @@ import { MinimaxTurn } from './minimaxTurn';
 main();
 
 async function main() {
-  const playerPokeIndex = [3, 4, 5];
-  const opponentPokeIndex = [6, 7, 8];
+  const playerPokeIndex = [0, 3, 1]; // aegislash, charizard, azumarill
+  const opponentPokeIndex = [1, 2, 7]; // azumarill, blissey, conkeldurr
 
   const strategies = await (await getPokemonStrategies()).data;
   const damageMatchupsRes = await (await getDamageMatchups()).data;

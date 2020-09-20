@@ -9,8 +9,8 @@ export interface GameState<T> {
     playerChoices(): T[];
     opponentChoices(): T[];
     staticEvaluateValue(): number;
-    executePlayerChoice(choice: T);
-    executeOpponentChoice(choice: T);
+    executePlayerChoice(choice: T | null): void;
+    executeOpponentChoice(choice: T | null): void;
     clone(): GameState<T>;
     isSubTree(): boolean;
     isEnd(): boolean;
@@ -76,7 +76,7 @@ export class MinimaxTurn<T> {
       }
   }
 
-  nextTurn(my: T, foes: T): MinimaxTurn<T> {
+  nextTurn(my: T | null, foes: T | null): MinimaxTurn<T> {
     const newGameState = this.gameState.clone();
     newGameState.executePlayerChoice(my);
     newGameState.executeOpponentChoice(foes);
@@ -97,7 +97,7 @@ export class MinimaxTurn<T> {
           return this.valuesOfMyChoices(restDepth);
       }
 
-      let summationValues: number[];
+      const summationValues: number[] = [];
       for(let i = 0; i < this.myValidChoices.length; i++)
       {
           summationValues.push(0.0);
@@ -118,7 +118,7 @@ export class MinimaxTurn<T> {
   //自分の選択肢全ての評価値を配列で返す
   valuesOfMyChoices(restDepth: number): number[]
   {
-      let values: number[];
+      const values: number[] = [];
       let currentMax = -1;
       for(let i = 0; i < this.myValidChoices.length; i++)
       {
@@ -144,7 +144,7 @@ export class MinimaxTurn<T> {
       return values;
   }
 
-  minimumValueOfFoesChoices(myChoice: T, restDepth: number, currentMax = -1): number
+  minimumValueOfFoesChoices(myChoice: T | null, restDepth: number, currentMax = -1): number
   {
       let minimumEvalValue: number = Number.MAX_SAFE_INTEGER;
 
