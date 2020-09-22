@@ -1,8 +1,24 @@
+export type DecisionTreeRoot = {
+    type: string, // e.g. 'move', my best choice
+    id: string, // my best choice
+    priority: number // my best choice
+    tree: DecisionTree,
+}
 
-export type MinimaxResult  = {
-  evalValuesOfChoices: number[],
-  bestChoiceIndex: number,
-  bestChoiceEvalValue: number;
+export type DecisionTree = {
+    type: string, //e.g. 'max'
+    value: number, // maximum or minimum value of children
+    depth: number, // remaining depth (0 on the bottom)
+    choices: ChoiceDetail[], // possible choices for the next turn
+    children: DecisionTree[], // e.g. children[2] is the next turn after executing choices[2]
+    action: ChoiceDetail | null, // best (max or min) choice of this tree (for the next turn)
+    state: string // current state of this turn
+}
+
+export type ChoiceDetail = {
+    type: string, // e.g. 'move'
+    id: string,
+    priority: number    
 }
 
 export interface GameState<T> {
@@ -45,7 +61,7 @@ export class MinimaxTurn<T> {
       return this.gameState.playerChoices().length === 0;
   }
 
-  evaluateValue(restDepth: number): number
+  evaluateTree(restDepth: number): DecisionTree
   {
       if(this.isSubTree)
       {
@@ -55,24 +71,32 @@ export class MinimaxTurn<T> {
       if(restDepth === 0 || this.isEnd)
       {
           const value = this.staticEvaluateValue();
-          return value;
+          return { 
+              type: 'max',
+              value: value,
+              depth: restDepth,
+              choices: [],
+              children: [],
+              action: null,
+              state: ""
+          };
       }
 
       else
       {
-          let turnEvalValue = 0.0;
-
           if(this.canOnlyFoeMove())
           {
-              turnEvalValue = this.minimumValueOfFoesChoices(null, restDepth);
-          }
+            const children = this.treesOfFoesChoices(null, restDepth);
+            const turnEvalValue = this.decisionTreeMapper('min', this.foesValidChoices, children, restDepth);
+            return turnEvalValue;
+        }
 
           else
           {
-              turnEvalValue = this.maximum(this.valuesOfMyChoices(restDepth));
-          }
-
-          return turnEvalValue;
+            const children = this.treesOfMyChoices(restDepth);
+            const turnEvalValue = this.decisionTreeMapper('max', this.myValidChoices, children, restDepth);
+            return turnEvalValue;
+        }
       }
   }
 
@@ -88,130 +112,84 @@ export class MinimaxTurn<T> {
   staticEvaluateValue(): number {
       return this.gameState.staticEvaluateValue();
   }
-  
-  //積算あり
-  totalValuesOfMyChoices(restDepth: number, nexCount: number): number[]
-  {
-      if(nexCount === 1)
-      {
-          return this.valuesOfMyChoices(restDepth);
-      }
 
-      const summationValues: number[] = [];
-      for(let i = 0; i < this.myValidChoices.length; i++)
-      {
-          summationValues.push(0.0);
-      }
+  treesOfMyChoices(restDepth: number): DecisionTree[] {
+    const trees: DecisionTree[] = [];
 
-      for(let i = 0; i < nexCount; i++)
-      {
-          const choiceValues = this.valuesOfMyChoices(restDepth);
-          for(let j = 0; j < choiceValues.length; j++)
-          {
-              summationValues[j] += choiceValues[j] / nexCount;
-          }
-      }
+    let currentMax = -1;
+    for(let i = 0; i < this.myValidChoices.length; i++)
+    {
+        const myChoice = this.myValidChoices[i];
+        if(this.canOnlyIMove()) //相手の選択肢が存在しない(自分だけが行動する)
+        {
+            const next = this.nextTurn(myChoice, null);
+            const evalTree = next.evaluateTree(restDepth - 1);
+            trees.push(evalTree);
+        }
+        else
+        {
+            const children = this.treesOfFoesChoices(myChoice, restDepth, currentMax);
+            const evalTree = this.decisionTreeMapper('min', this.foesValidChoices, children, restDepth);
+            if(i == 0 || evalTree.value > currentMax)
+            {
+                currentMax = evalTree.value;
+            }
+            trees.push(evalTree);
+        }
+    }
 
-      return summationValues;
+    return trees;
   }
 
-  //自分の選択肢全ての評価値を配列で返す
-  valuesOfMyChoices(restDepth: number): number[]
-  {
-      const values: number[] = [];
-      let currentMax = -1;
-      for(let i = 0; i < this.myValidChoices.length; i++)
-      {
-          const myChoice = this.myValidChoices[i];
-          let evalValue = 0.0;
-          if(this.canOnlyIMove()) //相手の選択肢が存在しない(自分だけが行動する)
-          {
-              const next = this.nextTurn(myChoice, null);
-              evalValue = next.evaluateValue(restDepth - 1);
-          }
-          else
-          {
-              evalValue = this.minimumValueOfFoesChoices(myChoice, restDepth, currentMax);
-              if(i == 0 || evalValue > currentMax)
-              {
-                  currentMax = evalValue;
-              }
-          }
+  // return: decisionTree[2] is the state after the foes choices[2]
+  treesOfFoesChoices(myChoice: T | null, restDepth: number, currentMax = -1): DecisionTree[] {
+    let minimumEvalValue: number = Number.MAX_SAFE_INTEGER;
+    const trees: DecisionTree[] = [];
 
-          values.push(evalValue);
-      }
+    for(let i = 0; i < this.foesValidChoices.length; i++)
+    {
+        const foesChoice = this.foesValidChoices[i];
+        const next = this.nextTurn(myChoice, foesChoice);
+        const evalTree = next.evaluateTree(restDepth - 1);
+        trees.push(evalTree);
 
-      return values;
+        if(i == 0 || evalTree.value < minimumEvalValue)
+        {
+            minimumEvalValue = evalTree.value;
+        }
+
+        if(minimumEvalValue <= currentMax)
+        {
+            break;
+        }
+    }
+
+    return trees;
   }
-
-  minimumValueOfFoesChoices(myChoice: T | null, restDepth: number, currentMax = -1): number
-  {
-      let minimumEvalValue: number = Number.MAX_SAFE_INTEGER;
-
-      for(let i = 0; i < this.foesValidChoices.length; i++)
-      {
-          const foesChoice = this.foesValidChoices[i];
-          const next = this.nextTurn(myChoice, foesChoice);
-          const evalValue = next.evaluateValue(restDepth - 1);
-
-          if(i == 0 || evalValue < minimumEvalValue)
-          {
-              minimumEvalValue = evalValue;
-          }
-
-          if(minimumEvalValue <= currentMax)
-          {
-              break;
-          }
-      }
-
-      return minimumEvalValue;
-  }
-
 
   //自分の最善手
-  executeMinimax(maxDepth: number, nex = 1): MinimaxResult
+  executeMinimax(maxDepth: number): DecisionTreeRoot
   {
       if(this.myValidChoices.length == 0)
       {
           throw "この局面に自分の選択肢は存在しません。";
       }
 
-      const result: any = {};
-      const values = this.totalValuesOfMyChoices(maxDepth, nex);
-      result.evalValuesOfChoices = values;
+      const trees = this.treesOfMyChoices(maxDepth);
+      const tree = this.decisionTreeMapper('max', this.myValidChoices, trees, maxDepth);
 
-      //
-      // 勝ちを表す評価値が含まれている場合、決まり手が存在する可能性があるので探索
-      //
-      if(maxDepth > 1 && values.indexOf(10) >= 0)
-      {
-          const index = this.finishingChoiceIndex(nex);
-          if(index != -1)
-          {
-              result.bestChoiceIndex = index;
-              result.bestChoiceEvalValue = 10.0;
-              return result;
-          }
+      if (!tree.action) {
+        throw new Error('Error: tree action is not defined')
       }
 
-      const index = this.maximumIndex(values);
-      result.bestChoiceIndex = index;
-      result.bestChoiceEvalValue = values[index];
-      return result;
-  }
-
-  //決まり手が存在すればそのインデックス、なければ-1
-  finishingChoiceIndex(nex = 1): number
-  {
-      if(this.myValidChoices.length == 0)
-      {
-          throw "この局面に自分の選択肢は存在しません。";
+      const treeRoot = {
+          type: tree.action.type,
+          id: tree.action.id,
+          priority: tree.action.priority,
+          tree: tree
       }
 
-      const values = this.totalValuesOfMyChoices(1, nex);
-      const index = values.indexOf(10);
-      return index;
+      return treeRoot;
   }
 
   average(list: number[]): number {
@@ -267,5 +245,32 @@ export class MinimaxTurn<T> {
     const minimumValue = Math.min(...array.map(x => value(x)));
     const minimumValueIndex = array.findIndex(x => value(x) === minimumValue);
     return minimumValueIndex;
+  }
+
+  decisionTreeMapper(type: string, validChoices: T[], children: DecisionTree[], restDepth: number): DecisionTree {
+    let bestChoiceIndex = -1;
+
+    if (type === 'max') {
+        bestChoiceIndex = this.maximumIndex(children.map(x => x.value));
+    } else if (type === 'min') {
+        bestChoiceIndex = this.minimumIndex(children.map(x => x.value));
+    } else {
+        throw new Error('Error: invalid tree type');
+    }
+
+    // to be improved
+    const choiceDetails = validChoices.map((x, i) => ({ type: 'move', id: i.toString(), priority: -1 }));
+
+    const evalTree = {
+        type: type,
+        value: children[bestChoiceIndex].value,
+        depth: restDepth,
+        choices: choiceDetails,
+        children: children,
+        action: choiceDetails[bestChoiceIndex],
+        state: ""
+    }
+
+    return evalTree;
   }
 } 
