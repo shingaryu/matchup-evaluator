@@ -9,6 +9,7 @@ import PokemonStrategy from './models/PokemonStrategy';
 import DamageMatchup from './models/DamageMatchup';
 import { DamageRaceState } from './damageRaceState';
 import { MinimaxTurn } from './minimaxTurn';
+import * as fs from 'fs';
 
 main();
 
@@ -31,6 +32,7 @@ async function main() {
   const results = minimaxTurn.executeMinimax(1);
 
   console.log(results);
+  fs.writeFileSync('minimaxResult.json', JSON.stringify(results, null, '\t'));
 }
 
 function findTeamDamageMatchups(myTeam: PokemonStrategy[], opponentTeam: PokemonStrategy[], damageMatchups: DamageMatchup[]) {

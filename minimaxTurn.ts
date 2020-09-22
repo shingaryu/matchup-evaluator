@@ -30,6 +30,7 @@ export interface GameState<T> {
     clone(): GameState<T>;
     isSubTree(): boolean;
     isEnd(): boolean;
+    toString(): string;
 }
 
 export class MinimaxTurn<T> {
@@ -78,7 +79,7 @@ export class MinimaxTurn<T> {
               choices: [],
               children: [],
               action: null,
-              state: ""
+              state: this.gameState.toString()
           };
       }
 
@@ -268,7 +269,7 @@ export class MinimaxTurn<T> {
         choices: choiceDetails,
         children: children,
         action: choiceDetails[bestChoiceIndex],
-        state: ""
+        state: this.gameState.toString()
     }
 
     return evalTree;

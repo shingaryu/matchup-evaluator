@@ -280,4 +280,93 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
 
     return obj;
   }
+
+  toString(): string {
+    const pa = this.playerActive;
+    const oa = this.opponentActive;
+
+    // not all texts are injected
+    return (`
+      Turn: -1\n
+      \n
+      Weather: None\n
+      PsuedoWeathers: []\n
+      \n
+      botPlayer\n
+      \tRequest Type: Any Move\n
+      Active Pokemon: ${pa.pokemonStrategy.species} ${(pa.hpRatio).toFixed(0)}/100 @ ${pa.pokemonStrategy.item}, L50.  Ability: stancechange.  Volatiles: []  Boosts: {\"spd\":-1}  Stats: {\"atk\":161,\"def\":70,\"spa\":211,\"spd\":70,\"spe\":72,\"hp\":167}. I'm Active!\n
+      \tAll Pokemon:\n
+      \t\tAegislash 167/167 @ weaknesspolicy, L50.  Ability: stancechange.  Volatiles: []  Boosts: {\"spd\":-1}  Stats: {\"atk\":161,\"def\":70,\"spa\":211,\"spd\":70,\"spe\":72,\"hp\":167}. I'm Active!\n
+      \tside conditions:[]\n
+      \n
+      humanPlayer\n
+      \tRequest Type: Any Move\n
+      \tactive:${oa.pokemonStrategy.species} ${(oa.hpRatio).toFixed(0)}/100 @ ${oa.pokemonStrategy.item}, L50.  Ability: mirrorarmor.  Volatiles: []  Boosts: {}  Stats: {\"atk\":107,\"def\":172,\"spa\":65,\"spd\":105,\"spe\":88,\"hp\":205}. I'm Active!\n
+      \tAll Pokemon:\n
+      \t\tCorviknight 118/205 @ leftovers, L50.  Ability: mirrorarmor.  Volatiles: []  Boosts: {}  Stats: {\"atk\":107,\"def\":172,\"spa\":65,\"spd\":105,\"spe\":88,\"hp\":205}. I'm Active!\n
+      \tside conditions:[]\n
+      \n
+      \n
+      {\n
+        \"p1_reflect\": 0,\n
+        \"p2_reflect\": 0,\n
+        \"p1_spikes\": 0,\n
+        \"p2_spikes\": 0,\n
+        \"p1_stealthrock\": 0,\n
+        \"p2_stealthrock\": 0,\n
+        \"p1_stickyweb\": 0,\n
+        \"p2_stickyweb\": 0,\n
+        \"p1_toxicspikes\": 0,\n
+        \"p2_toxicspikes\": 0,\n
+        \"p1_lightscreen\": 0,\n
+        \"p2_lightscreen\": 0,\n
+        \"p1_tailwind\": 0,\n
+        \"p2_tailwind\": 0,\n
+        \"p1_substitute\": 0,\n
+        \"p2_substitute\": 0,\n
+        \"p1_confusion\": 0,\n
+        \"p2_confusion\": 0,\n
+        \"p1_leechseed\": 0,\n
+        \"p2_leechseed\": 0,\n
+        \"p1_infestation\": 0,\n
+        \"p2_infestation\": 0,\n
+        \"p1_atk\": 0,\n
+        \"p2_atk\": 0,\n
+        \"p1_def\": 0,\n
+        \"p2_def\": 0,\n
+        \"p1_spa\": 0,\n
+        \"p2_spa\": 0,\n
+        \"p1_spd\": -1,\n
+        \"p2_spd\": 0,\n
+        \"p1_spe\": 0,\n
+        \"p2_spe\": 0,\n
+        \"p1_accuracy\": 0,\n
+        \"p2_accuracy\": 0,\n
+        \"p1_evasion\": 0,\n
+        \"p2_evasion\": 0,\n
+        \"p1_hp\": 1,\n
+        \"p2_hp\": 0.5756097560975609,\n
+        \"p1_alive\": 1,\n
+        \"p2_alive\": 1,\n
+        \"p1_fast_alive\": 0,\n
+        \"p2_fast_alive\": 0,\n
+        \"p1_psn_count\": 0,\n
+        \"p2_psn_count\": 0,\n
+        \"p1_tox_count\": 0,\n
+        \"p2_tox_count\": 0,\n
+        \"p1_slp_count\": 0,\n
+        \"p2_slp_count\": 0,\n
+        \"p1_brn_count\": 0,\n
+        \"p2_brn_count\": 0,\n
+        \"p1_frz_count\": 0,\n
+        \"p2_frz_count\": 0,\n
+        \"p1_par_count\": 0,\n
+        \"p2_par_count\": 0,\n
+        \"items\": 1,\n
+        \"faster\": 0,\n
+        \"has_supereffective\": 0,\n
+        \"has_stab\": 1\n
+      }`
+    );
+  }
 }
