@@ -108,6 +108,23 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
   }
 
   isSubTree(): boolean {
+    const alivePlayerPokemonNum = this.playerPokemon.filter(x => !x.isFainted).length;
+    const aliveOpponentPokemonNum = this.opponentPokemon.filter(x => !x.isFainted).length;
+
+    if (this.isEnd()) {
+      return false;
+    }
+
+    // waiting for the switch
+    if (this.playerActive.isFainted && alivePlayerPokemonNum >= 1){
+      return true;
+    }
+
+    // waiting for the switch
+    if (this.opponentActive.isFainted && aliveOpponentPokemonNum >= 1){
+      return true;
+    }
+
     return false;
   }
 
