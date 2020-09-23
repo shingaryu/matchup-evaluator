@@ -13,7 +13,8 @@ export type DamageRaceChoice = {
   // choiceContent: MoveChoice | SwitchChoice,
   moveSlot?: number,
   moveName?: string,
-  switchTo?: number
+  switchTo?: number,
+  displayName: string
 }
 
 export type MoveChoice = {
@@ -78,10 +79,10 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
     const choices: DamageRaceChoice[] = [];
 
     if (request.canMove) {
-      choices.push({ type: 0, moveSlot: 0, moveName: active.pokemonStrategy.move1});
-      choices.push({ type: 0, moveSlot: 1, moveName: active.pokemonStrategy.move2});
-      choices.push({ type: 0, moveSlot: 2, moveName: active.pokemonStrategy.move3});
-      choices.push({ type: 0, moveSlot: 3, moveName: active.pokemonStrategy.move4});
+      choices.push({ type: 0, moveSlot: 0, moveName: active.pokemonStrategy.move1, displayName: `${active.pokemonStrategy.move1}`});
+      choices.push({ type: 0, moveSlot: 1, moveName: active.pokemonStrategy.move2, displayName: `${active.pokemonStrategy.move2}`});
+      choices.push({ type: 0, moveSlot: 2, moveName: active.pokemonStrategy.move3, displayName: `${active.pokemonStrategy.move3}`});
+      choices.push({ type: 0, moveSlot: 3, moveName: active.pokemonStrategy.move4, displayName: `${active.pokemonStrategy.move4}`});
     }
 
     if (request.canSwitch) {
@@ -90,7 +91,7 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
       .filter((x) => !x.poke.isFainted)
       .map(x => x.i);
 
-      alivePokemonindices.forEach(x => choices.push({ type: 1, switchTo: x}));
+      alivePokemonindices.forEach(x => choices.push({ type: 1, switchTo: x, displayName: `${pokemon[x].pokemonStrategy.species}`}));
     }
     
     return choices;
@@ -157,7 +158,7 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
 
     if (playerChoice?.type === 1) {
       // this.playerActiveSlot = playerChoice.switchTo;
-      if (!playerChoice.switchTo) {
+      if (playerChoice.switchTo == null) {
         throw new Error('Error: switchTo is not defined');
       }
       this.playerActive = this.playerPokemon[playerChoice.switchTo];
@@ -166,7 +167,7 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
 
     if (opponentChoice?.type === 1) {
       // this.opponentActiveSlot = opponentChoice.switchTo;
-      if (!opponentChoice.switchTo) {
+      if (opponentChoice.switchTo == null) {
         throw new Error('Error: switchTo is not defined');
       }
       this.opponentActive = this.opponentPokemon[opponentChoice.switchTo];
@@ -218,6 +219,12 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
         opponentActive.hpRatio = 0;
         opponentActive.isFainted = true;
       }
+      if (playerActive.hpRatio > 100) {
+        playerActive.hpRatio = 100;
+      }
+      if (opponentActive.hpRatio > 100) {
+        opponentActive.hpRatio = 100;
+      }
     }
 
     return true;
@@ -227,11 +234,15 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
     if (this.playerActive.isFainted) {
       // this.playerActive = null;
       this.playerChoiceRequest = { canMove: false, canSwitch: true };
+    } else {
+      this.playerChoiceRequest = { canMove: true, canSwitch: true };
     }
 
     if (this.opponentActive.isFainted) {
       // this.opponentActive = null;
       this.opponentChoiceRequest = { canMove: false, canSwitch: true };
+    } else {
+      this.opponentChoiceRequest = { canMove: true, canSwitch: true };
     }
   }
 

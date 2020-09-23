@@ -33,7 +33,11 @@ export interface GameState<T> {
     toString(): string;
 }
 
-export class MinimaxTurn<T> {
+export interface MinimaxChoice {
+    displayName: string
+}
+
+export class MinimaxTurn<T extends MinimaxChoice> {
   protected isSubTree: boolean;
   protected isEnd: boolean;
   protected gameState: GameState<T>;
@@ -117,7 +121,7 @@ export class MinimaxTurn<T> {
   treesOfMyChoices(restDepth: number): DecisionTree[] {
     const trees: DecisionTree[] = [];
 
-    let currentMax = -1;
+    let currentMax = Number.MIN_SAFE_INTEGER;
     for(let i = 0; i < this.myValidChoices.length; i++)
     {
         const myChoice = this.myValidChoices[i];
@@ -143,7 +147,7 @@ export class MinimaxTurn<T> {
   }
 
   // return: decisionTree[2] is the state after the foes choices[2]
-  treesOfFoesChoices(myChoice: T | null, restDepth: number, currentMax = -1): DecisionTree[] {
+  treesOfFoesChoices(myChoice: T | null, restDepth: number, currentMax = Number.MIN_SAFE_INTEGER): DecisionTree[] {
     let minimumEvalValue: number = Number.MAX_SAFE_INTEGER;
     const trees: DecisionTree[] = [];
 
@@ -260,11 +264,11 @@ export class MinimaxTurn<T> {
     }
 
     // to be improved
-    const choiceDetails = validChoices.map((x, i) => ({ type: 'move', id: i.toString(), priority: -1 }));
+    const choiceDetails = validChoices.map((x, i) => ({ type: 'move', id: x.displayName, priority: -1 }));
 
     const evalTree = {
         type: type,
-        value: children[bestChoiceIndex].value,
+        value: children.length > 0? children[bestChoiceIndex].value: 0,
         depth: restDepth,
         choices: choiceDetails,
         children: children,
