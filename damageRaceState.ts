@@ -163,6 +163,7 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
       }
       this.playerActive = this.playerPokemon[playerChoice.switchTo];
       this.storedPlayerChoice = null;
+      return true;
     }
 
     if (opponentChoice?.type === 1) {
@@ -172,6 +173,7 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
       }
       this.opponentActive = this.opponentPokemon[opponentChoice.switchTo];
       this.storedOpponentChoice = null;
+      return true;
     }
 
     return true;
@@ -231,18 +233,17 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
   }
 
   processAfterMoveRequest(): void {
-    if (this.playerActive.isFainted) {
-      // this.playerActive = null;
-      this.playerChoiceRequest = { canMove: false, canSwitch: true };
-    } else {
-      this.playerChoiceRequest = { canMove: true, canSwitch: true };
-    }
+    const alivePlayerPokemonNum = this.playerPokemon.filter(x => !x.isFainted).length;
+    const aliveOpponentPokemonNum = this.opponentPokemon.filter(x => !x.isFainted).length;
 
-    if (this.opponentActive.isFainted) {
-      // this.opponentActive = null;
-      this.opponentChoiceRequest = { canMove: false, canSwitch: true };
+    if (this.playerActive.isFainted || this.opponentActive.isFainted) {
+      // switch only (-> sub tree)
+      this.playerChoiceRequest = { canMove: false, canSwitch: this.playerActive.isFainted && alivePlayerPokemonNum >= 1 };
+      this.opponentChoiceRequest = { canMove: false, canSwitch: this.opponentActive.isFainted && aliveOpponentPokemonNum >= 1 };
     } else {
-      this.opponentChoiceRequest = { canMove: true, canSwitch: true };
+      // next turn
+      this.playerChoiceRequest = { canMove: true, canSwitch: alivePlayerPokemonNum >= 2 };
+      this.opponentChoiceRequest = { canMove: true, canSwitch: aliveOpponentPokemonNum >= 2 };
     }
   }
 
