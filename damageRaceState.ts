@@ -180,7 +180,6 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
       }
       this.playerActive = this.playerPokemon[playerChoice.switchTo];
       this.storedPlayerChoice = null;
-      return true;
     }
 
     if (opponentChoice?.type === 1) {
@@ -190,7 +189,6 @@ export class DamageRaceState implements GameState<DamageRaceChoice>  {
       }
       this.opponentActive = this.opponentPokemon[opponentChoice.switchTo];
       this.storedOpponentChoice = null;
-      return true;
     }
 
     return true;
