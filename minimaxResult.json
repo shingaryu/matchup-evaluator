@@ -1,0 +1,214 @@
+{
+	"type": "move",
+	"id": "Drain Punch",
+	"priority": -1,
+	"tree": {
+		"type": "max",
+		"value": 0,
+		"depth": 5,
+		"choices": [
+			{
+				"type": "move",
+				"id": "Drain Punch",
+				"priority": -1
+			}
+		],
+		"children": [
+			{
+				"type": "min",
+				"value": 0,
+				"depth": 5,
+				"choices": [
+					{
+						"type": "move",
+						"id": "Azumarill",
+						"priority": -1
+					}
+				],
+				"children": [
+					{
+						"type": "max",
+						"value": 0,
+						"depth": 4,
+						"choices": [
+							{
+								"type": "move",
+								"id": "Stone Edge",
+								"priority": -1
+							}
+						],
+						"children": [
+							{
+								"type": "min",
+								"value": 0,
+								"depth": 4,
+								"choices": [
+									{
+										"type": "move",
+										"id": "Aqua Jet",
+										"priority": -1
+									}
+								],
+								"children": [
+									{
+										"type": "max",
+										"value": 0,
+										"depth": 3,
+										"choices": [
+											{
+												"type": "move",
+												"id": "Stone Edge",
+												"priority": -1
+											}
+										],
+										"children": [
+											{
+												"type": "min",
+												"value": 0,
+												"depth": 3,
+												"choices": [
+													{
+														"type": "move",
+														"id": "Play Rough",
+														"priority": -1
+													}
+												],
+												"children": [
+													{
+														"type": "max",
+														"value": 0,
+														"depth": 3,
+														"choices": [
+															{
+																"type": "move",
+																"id": "Aegislash",
+																"priority": -1
+															}
+														],
+														"children": [
+															{
+																"type": "max",
+																"value": 0,
+																"depth": 2,
+																"choices": [
+																	{
+																		"type": "move",
+																		"id": "Shadow Ball",
+																		"priority": -1
+																	}
+																],
+																"children": [
+																	{
+																		"type": "max",
+																		"value": 0,
+																		"depth": 1,
+																		"choices": [
+																			{
+																				"type": "move",
+																				"id": "Shadow Ball",
+																				"priority": -1
+																			}
+																		],
+																		"children": [
+																			{
+																				"type": "min",
+																				"value": 0,
+																				"depth": 1,
+																				"choices": [
+																					{
+																						"type": "move",
+																						"id": "Blissey",
+																						"priority": -1
+																					}
+																				],
+																				"children": [
+																					{
+																						"type": "max",
+																						"value": 0,
+																						"depth": 0,
+																						"choices": [],
+																						"children": [],
+																						"action": null,
+																						"state": ""
+																					}
+																				],
+																				"action": {
+																					"type": "move",
+																					"id": "Blissey",
+																					"priority": -1
+																				},
+																				"state": ""
+																			}
+																		],
+																		"action": {
+																			"type": "move",
+																			"id": "Shadow Ball",
+																			"priority": -1
+																		},
+																		"state": ""
+																	}
+																],
+																"action": {
+																	"type": "move",
+																	"id": "Shadow Ball",
+																	"priority": -1
+																},
+																"state": ""
+															}
+														],
+														"action": {
+															"type": "move",
+															"id": "Aegislash",
+															"priority": -1
+														},
+														"state": ""
+													}
+												],
+												"action": {
+													"type": "move",
+													"id": "Play Rough",
+													"priority": -1
+												},
+												"state": ""
+											}
+										],
+										"action": {
+											"type": "move",
+											"id": "Stone Edge",
+											"priority": -1
+										},
+										"state": ""
+									}
+								],
+								"action": {
+									"type": "move",
+									"id": "Aqua Jet",
+									"priority": -1
+								},
+								"state": ""
+							}
+						],
+						"action": {
+							"type": "move",
+							"id": "Stone Edge",
+							"priority": -1
+						},
+						"state": ""
+					}
+				],
+				"action": {
+					"type": "move",
+					"id": "Azumarill",
+					"priority": -1
+				},
+				"state": ""
+			}
+		],
+		"action": {
+			"type": "move",
+			"id": "Drain Punch",
+			"priority": -1
+		},
+		"state": ""
+	}
+}
