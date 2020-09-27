@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 // Command-line Arguments
 global.program = require('commander');
 global.program

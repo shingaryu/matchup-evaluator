@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 global.program = require('commander');
 global.program
 .option('--directory [file]', "directory path from which showdown format pokemon files are loaded. ['./matchup-candidates']", './matchup-candidates')
