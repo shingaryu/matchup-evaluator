@@ -1,23 +1,18 @@
 const { Client } = require('pg')
-const fs = require('fs');
 
 class PostgresRepositoryBase {
   constructor() {
-    const postgresCredentials = JSON.parse(fs.readFileSync('./postgres-credentials.json'));
-
     // on heroku environment
     if (process.env.NODE_ENV === 'production') {
       this.client = new Client({
-        // connectionString: process.env.DATABASE_URL,
-        connectionString: postgresCredentials.databaseUrl,
+        connectionString: process.env.DATABASE_URL,
         ssl: {
           rejectUnauthorized: false
         }
       });
     } else {
       this.client = new Client({
-        // connectionString: process.env.DATABASE_URL,
-        connectionString: postgresCredentials.databaseUrl,
+        connectionString: process.env.DATABASE_URL,
         ssl: {
           rejectUnauthorized: false
         }
