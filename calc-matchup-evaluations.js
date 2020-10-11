@@ -139,8 +139,8 @@ async function calcMatupFromIdSets (weights, oneOnOneRepetition, minimaxDepth, m
        const cv = stdD / Math.abs(ave);
  
       logger.info(`Matchup strength: ${ave} (stddev: ${stdD}, C.V.: ${cv})`);
+      const sqlForInsert = new SqlService();
       try {
-        const sqlForInsert = new SqlService();
         await sqlForInsert.insertMatchupEvaluation(idSet.str1_id, idSet.str2_id, ave, calculatedAt);
         sqlForInsert.endConnection();
         succeeded++;
