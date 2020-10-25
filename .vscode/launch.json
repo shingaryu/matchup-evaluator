@@ -8,10 +8,14 @@
       "type": "node",
       "request": "launch",
       "name": "Launch Program",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}\\calc-matchup-evaluations.js"
+      "program": "${workspaceFolder}\\calc-matchup-evaluations.ts"
     }
   ]
 }

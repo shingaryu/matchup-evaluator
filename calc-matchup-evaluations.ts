@@ -1,24 +1,14 @@
 require('dotenv').config();
+const { setCommanderGlobal } = require('./setCommanderGlobal');
+const commanderProgram = setCommanderGlobal();
 
-// Command-line Arguments
-global.program = require('commander');
-global.program
-.option('--net [action]', "'create' - generate a new network. 'update' - use and modify existing network. 'use' - use, but don't modify network. 'none' - use hardcoded weights. ['none']", 'none')
-.option('-d --depth [depth]', "Minimax bot searches to this depth in the matchup evaluation. [2]", "2")
-.option('--nolog', "Don't append to log files.")
-.option('--onlyinfo [onlyinfo]', "Hide debug messages and speed up bot calculations", true)
-.option('--usechildprocess', "Use child process to execute heavy calculations with parent process keeping the connection to showdown server.")
-.option('-n, --numoftrials [numoftrials]', "Each matchup evaluation is iterated and averaged by the number of trials. [10]", "10")
-.parse(process.argv);
-
-const { Dex, PcmBattle, Minimax, initLog4js, Util } = require('percymon');
+const { Dex, PcmBattle, Minimax, Util } = require('percymon');
 const moment = require('moment');
 
 const SqlService = require('./sql-service').SqlService;
 const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
 
 // Setup Logging
-initLog4js(global.program.nolog, global.program.onlyinfo);
 const logger = require('log4js').getLogger("bot");
 
 const weights = {
@@ -26,10 +16,10 @@ const weights = {
   "p2_hp": -1024,
 }
 
-calcMatupFromIdSets(weights, global.program.numoftrials, global.program.depth, 1);
+calcMatupFromIdSets(weights, commanderProgram.numoftrials, commanderProgram.depth, 1);
 
-async function calcMatupFromIdSets (weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton = 1) {
-  const startTime = new Date();
+async function calcMatupFromIdSets (weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
+  const startTime = new moment();
   const sqlForIdSets = new SqlService();
   const calculatedAt = moment().format('YYYY-MM-DD HH:mm:ss');  
   const targetStrategyIdSets = await sqlForIdSets.fetchTargetStrategyIdSets();
@@ -97,7 +87,7 @@ async function calcMatupFromIdSets (weights, oneOnOneRepetition, minimaxDepth, m
     );
    
     const customGameFormat = Dex.getFormat(`gen8customgame`, true);
-    customGameFormat.ruleset = customGameFormat.ruleset.filter(rule => rule !== 'Team Preview');
+    customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
     customGameFormat.forcedLevel = 50;
 
     validatePokemonSets(customGameFormat, [myPoke, oppPoke]);
@@ -147,36 +137,36 @@ async function calcMatupFromIdSets (weights, oneOnOneRepetition, minimaxDepth, m
     }
   }
 
-  const endTime = new Date();
-  const duration = moment.duration(endTime - startTime);
+  const endTime = new moment();
+  const duration = moment.duration(endTime.valueOf() - startTime.valueOf());
   logger.info('Finished all calculations!');
   logger.info(`Succeeded: ${succeeded}, Failed: ${failed}`);
   logger.info(`Elapsed time: ${duration.hours()}h ${duration.minutes()}m ${duration.seconds()}s`);
 }
 
 function createPokemonSet(
-  species_name,
-  item, 
-  ability, 
-  nature, 
-  move1, 
-  move2, 
-  move3, 
-  move4,
-  ev_hp,
-  ev_atk, 
-  ev_def, 
-  ev_spa, 
-  ev_spd, 
-  ev_spe, 
-  gender, 
-  iv_hp,
-  iv_atk, 
-  iv_def, 
-  iv_spa, 
-  iv_spd, 
-  iv_spe,
-  happiness
+  species_name: string,
+  item: string, 
+  ability: string, 
+  nature: string, 
+  move1: string, 
+  move2: string, 
+  move3: string, 
+  move4: string,
+  ev_hp: number,
+  ev_atk: number, 
+  ev_def: number, 
+  ev_spa: number, 
+  ev_spd: number, 
+  ev_spe: number, 
+  gender: string, 
+  iv_hp: number,
+  iv_atk: number, 
+  iv_def: number, 
+  iv_spa: number, 
+  iv_spd: number, 
+  iv_spe: number,
+  happiness: number
 ) {
 
   const set = {
@@ -215,20 +205,20 @@ function createPokemonSet(
   return set
 }
 
-function stdDev(values) {
+function stdDev(values: number[]) {
 	const ave = average(values);
 	const vari = variance(values, ave);
 	const stdDev = Math.sqrt(vari);
 	return stdDev;
 }
 
-function average(values) {
+function average(values: number[]) {
 	let sum = 0;
 	values.forEach(value => sum += value);
 	return sum / values.length;
 }
 
-function variance(values, average) {
+function variance(values: number[], average: number) {
 	let sum = 0;
 	values.forEach(value => sum += Math.pow(value - average, 2));
 	return sum / values.length;
