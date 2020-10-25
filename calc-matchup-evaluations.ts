@@ -36,104 +36,11 @@ async function calcMatupFromIdSets (weights: any, oneOnOneRepetition: number, mi
   let failed = 0;
   for (let i = 0; i < targetStrategyIdSets.length; i++) {
     const idSet = targetStrategyIdSets[i];
-    const myPoke = createPokemonSet(
-      idSet.spe1_species_name,
-      idSet.str1_item, 
-      idSet.str1_ability, 
-      idSet.str1_nature, 
-      idSet.str1_move1, 
-      idSet.str1_move2, 
-      idSet.str1_move3, 
-      idSet.str1_move4,
-      idSet.str1_ev_hp,
-      idSet.str1_ev_atk, 
-      idSet.str1_ev_def, 
-      idSet.str1_ev_spa, 
-      idSet.str1_ev_spd, 
-      idSet.str1_ev_spe, 
-      idSet.str1_gender, 
-      idSet.str1_iv_hp,
-      idSet.str1_iv_atk, 
-      idSet.str1_iv_def, 
-      idSet.str1_iv_spa, 
-      idSet.str1_iv_spd, 
-      idSet.str1_iv_spe, 
-      idSet.str1_happiness, 
-    );
-
-    const oppPoke = createPokemonSet(
-      idSet.spe2_species_name,
-      idSet.str2_item, 
-      idSet.str2_ability, 
-      idSet.str2_nature, 
-      idSet.str2_move1, 
-      idSet.str2_move2, 
-      idSet.str2_move3, 
-      idSet.str2_move4,
-      idSet.str2_ev_hp,
-      idSet.str2_ev_atk, 
-      idSet.str2_ev_def, 
-      idSet.str2_ev_spa, 
-      idSet.str2_ev_spd, 
-      idSet.str2_ev_spe, 
-      idSet.str2_gender, 
-      idSet.str2_iv_hp,
-      idSet.str2_iv_atk, 
-      idSet.str2_iv_def, 
-      idSet.str2_iv_spa, 
-      idSet.str2_iv_spd, 
-      idSet.str2_iv_spe, 
-      idSet.str2_happiness, 
-    );
-   
-    const customGameFormat = Dex.getFormat(`gen8customgame`, true);
-    customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
-    customGameFormat.forcedLevel = 50;
-
-    validatePokemonSets(customGameFormat, [myPoke, oppPoke]);
-      
-    logger.info("start evaluating matchup strength...")
-    const minimax = new Minimax(false, minimaxRepetiton, false, weights);
-
-    logger.info(`evaluate about ${myPoke.species} vs ${oppPoke.species}`);
-    const repeatedOneOnOneValues = [];
-
-    for (let k = 0; k < oneOnOneRepetition; k++) {
-      const evalValuesForBothSide = [];
-      // to avoid asymmetry of the minimax about evaluation values 
-      for (let l = 0; l < 2; l++) {
-        const p1 = { name: 'botPlayer', avatar: 1, team: l === 0? [myPoke]:[oppPoke] };
-        const p2 = { name: 'humanPlayer', avatar: 1, team: l === 0? [oppPoke]:[myPoke] };								
-        const battleOptions = { format: customGameFormat, rated: false, send: null, p1, p2 };
-        const battle = new PcmBattle(battleOptions);
-        battle.start();              
-        battle.makeRequest();                   
-        const decision = Util.parseRequest(battle.p1.request);
-        const minimaxDecision = minimax.decide(Util.cloneBattle(battle), decision.choices, minimaxDepth);
-
-        evalValuesForBothSide.push(minimaxDecision.tree.value);
-      }
-
-      const evalValue = (evalValuesForBothSide[0] - evalValuesForBothSide[1]) / 2;
-      repeatedOneOnOneValues.push(evalValue);
-    }
-
-    const ave = average(repeatedOneOnOneValues);
-    const stdD = stdDev(repeatedOneOnOneValues);
-    const cv = stdD / Math.abs(ave);
-
-    logger.info(`Matchup strength: ${ave} (stddev: ${stdD}, C.V.: ${cv})`);
-    const sqlForInsert = new SqlService();
-    try {
-      await sqlForInsert.insertMatchupEvaluation(idSet.str1_id, idSet.str2_id, ave, calculatedAt);
-      sqlForInsert.endConnection();
+    const result = await calcAndInsertForIdSet(idSet, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt);
+    if (result === 0) {
       succeeded++;
-      logger.info('Successfully inserted to DB');
-    } catch (error) {
-      logger.info('Failed to insert the matchup value to DB. This matchup will be skipped.');
-      sqlForInsert.endConnection();
+    } else {
       failed++;
-      console.log(error);
     }
   }
 
@@ -142,6 +49,108 @@ async function calcMatupFromIdSets (weights: any, oneOnOneRepetition: number, mi
   logger.info('Finished all calculations!');
   logger.info(`Succeeded: ${succeeded}, Failed: ${failed}`);
   logger.info(`Elapsed time: ${duration.hours()}h ${duration.minutes()}m ${duration.seconds()}s`);
+}
+
+async function calcAndInsertForIdSet(idSet: any, weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: any) {
+  const myPoke = createPokemonSet(
+    idSet.spe1_species_name,
+    idSet.str1_item, 
+    idSet.str1_ability, 
+    idSet.str1_nature, 
+    idSet.str1_move1, 
+    idSet.str1_move2, 
+    idSet.str1_move3, 
+    idSet.str1_move4,
+    idSet.str1_ev_hp,
+    idSet.str1_ev_atk, 
+    idSet.str1_ev_def, 
+    idSet.str1_ev_spa, 
+    idSet.str1_ev_spd, 
+    idSet.str1_ev_spe, 
+    idSet.str1_gender, 
+    idSet.str1_iv_hp,
+    idSet.str1_iv_atk, 
+    idSet.str1_iv_def, 
+    idSet.str1_iv_spa, 
+    idSet.str1_iv_spd, 
+    idSet.str1_iv_spe, 
+    idSet.str1_happiness, 
+  );
+
+  const oppPoke = createPokemonSet(
+    idSet.spe2_species_name,
+    idSet.str2_item, 
+    idSet.str2_ability, 
+    idSet.str2_nature, 
+    idSet.str2_move1, 
+    idSet.str2_move2, 
+    idSet.str2_move3, 
+    idSet.str2_move4,
+    idSet.str2_ev_hp,
+    idSet.str2_ev_atk, 
+    idSet.str2_ev_def, 
+    idSet.str2_ev_spa, 
+    idSet.str2_ev_spd, 
+    idSet.str2_ev_spe, 
+    idSet.str2_gender, 
+    idSet.str2_iv_hp,
+    idSet.str2_iv_atk, 
+    idSet.str2_iv_def, 
+    idSet.str2_iv_spa, 
+    idSet.str2_iv_spd, 
+    idSet.str2_iv_spe, 
+    idSet.str2_happiness, 
+  );
+ 
+  const customGameFormat = Dex.getFormat(`gen8customgame`, true);
+  customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
+  customGameFormat.forcedLevel = 50;
+
+  validatePokemonSets(customGameFormat, [myPoke, oppPoke]);
+    
+  logger.info("start evaluating matchup strength...")
+  const minimax = new Minimax(false, minimaxRepetiton, false, weights);
+
+  logger.info(`evaluate about ${myPoke.species} vs ${oppPoke.species}`);
+  const repeatedOneOnOneValues = [];
+
+  for (let k = 0; k < oneOnOneRepetition; k++) {
+    const evalValuesForBothSide = [];
+    // to avoid asymmetry of the minimax about evaluation values 
+    for (let l = 0; l < 2; l++) {
+      const p1 = { name: 'botPlayer', avatar: 1, team: l === 0? [myPoke]:[oppPoke] };
+      const p2 = { name: 'humanPlayer', avatar: 1, team: l === 0? [oppPoke]:[myPoke] };								
+      const battleOptions = { format: customGameFormat, rated: false, send: null, p1, p2 };
+      const battle = new PcmBattle(battleOptions);
+      battle.start();              
+      battle.makeRequest();                   
+      const decision = Util.parseRequest(battle.p1.request);
+      const minimaxDecision = minimax.decide(Util.cloneBattle(battle), decision.choices, minimaxDepth);
+
+      evalValuesForBothSide.push(minimaxDecision.tree.value);
+    }
+
+    const evalValue = (evalValuesForBothSide[0] - evalValuesForBothSide[1]) / 2;
+    repeatedOneOnOneValues.push(evalValue);
+  }
+
+  const ave = average(repeatedOneOnOneValues);
+  const stdD = stdDev(repeatedOneOnOneValues);
+  const cv = stdD / Math.abs(ave);
+
+  logger.info(`Matchup strength: ${ave} (stddev: ${stdD}, C.V.: ${cv})`);
+  const sqlForInsert = new SqlService();
+  try {
+    await sqlForInsert.insertMatchupEvaluation(idSet.str1_id, idSet.str2_id, ave, calculatedAt);
+    sqlForInsert.endConnection();
+    logger.info('Successfully inserted to DB');
+    return 0;
+  } catch (error) {
+    logger.info('Failed to insert the matchup value to DB. This matchup will be skipped.');
+    sqlForInsert.endConnection();
+    console.log(error);
+    return 1;
+  }
 }
 
 function createPokemonSet(
