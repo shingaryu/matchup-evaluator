@@ -16,7 +16,36 @@ const weights = {
   "p2_hp": -1024,
 }
 
-calcMatupFromIdSets(weights, commanderProgram.numoftrials, commanderProgram.depth, 1);
+// calcMatupFromIdSets(weights, commanderProgram.numoftrials, commanderProgram.depth, 1);
+calcAsService(weights, commanderProgram.numoftrials, commanderProgram.depth, 1, commanderProgram.fetchSpanSecond);
+
+async function calcAsService(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1, fetchSpanSecond: number) {
+  const sqlForIdSets = new SqlService();
+  const calculatedAt = moment().format('YYYY-MM-DD HH:mm:ss');  
+  let targetStrategyIdSets: any;
+  
+  while(true) {
+    targetStrategyIdSets = await sqlForIdSets.fetchTargetStrategyIdSets();
+
+    if (targetStrategyIdSets.length === 0) {
+      logger.info(`There is no matchup to be calculated. Retrying in ${fetchSpanSecond} seconds...`)
+      await sleep(fetchSpanSecond * 1000);
+      continue;
+    } else {
+      logger.info(`${targetStrategyIdSets.length} matchups are remaining`)
+
+      const idSet = targetStrategyIdSets[0];
+      await calcAndInsertForIdSet(idSet, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt);
+    }
+  }
+  // sqlForIdSets.endConnection();
+}
+
+async function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 async function calcMatupFromIdSets (weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
   const startTime = new moment();
