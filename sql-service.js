@@ -6,8 +6,17 @@ class SqlService extends PostgresRepositoryBase {
     super();
   }
 
-  insertPokemonStrategy(poke) {
-    const sql = `
+  async insertPokemonStrategy(poke) {
+    const speciesSelectSql = `SELECT id FROM pokemon_species WHERE name = '${poke.species}'`;
+    const speciesSelectRes = await this.sqlQueryPromise(speciesSelectSql);
+
+    if (speciesSelectRes.length === 0) {
+      throw new Error(`Species not found with the name ${poke.species}`);
+    } else if (speciesSelectRes.length > 1) {
+      throw new Error('More than or equal two species are matched to this strategy. Cannot assign species id!');
+    }
+
+    const insertSql = `
       INSERT INTO pokemon_strategies (
         id, 
         species_id,
@@ -36,9 +45,9 @@ class SqlService extends PostgresRepositoryBase {
         happiness,
         shiny
       )
-      SELECT 
+      VALUES (
         '${uuidv4()}' , 
-        id,
+        '${speciesSelectRes[0].id}',
         ${this.escapeOrNull(poke.item)},
         ${this.escapeOrNull(poke.ability)},
         ${this.escapeOrNull(poke.nature)},
@@ -63,11 +72,10 @@ class SqlService extends PostgresRepositoryBase {
         ${poke.level? poke.level: 'NULL'},
         ${poke.happiness? poke.happiness: 'NULL'},
         ${poke.shiny? poke.shiny: 'NULL'}
-      FROM pokemon_species
-      WHERE name = '${poke.species}'
+      )
     `
 
-    return this.sqlQueryPromise(sql);
+    return this.sqlQueryPromise(insertSql);
   }
 
 
