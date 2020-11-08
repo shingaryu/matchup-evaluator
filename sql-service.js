@@ -6,6 +6,33 @@ class SqlService extends PostgresRepositoryBase {
     super();
   }
 
+  async insertPokemonSpeciesIfNotExists(dexNumber, name) {
+    const speciesSelectSql = `SELECT * FROM pokemon_species WHERE dex_number = ${dexNumber} AND name = ${this.escapeOrNull(name)};`;
+    const speciesSelectRes = await this.sqlQueryPromise(speciesSelectSql);
+    if (speciesSelectRes.length === 0) {
+      console.log(`new species ${name}`);
+
+      const insertSql = `
+        INSERT INTO pokemon_species (
+          id, 
+          name,
+          dex_number
+        )
+        VALUES (
+          '${uuidv4()}' , 
+          ${this.escapeOrNull(name)},
+          ${dexNumber}
+        )
+      `;
+
+      return this.sqlQueryPromise(insertSql);
+
+    } else if (speciesSelectRes.length > 0) {
+      // console.log(`existing species ${name}`);
+      return;
+    }
+  }
+
   async insertPokemonStrategy(poke) {
     const speciesSelectSql = `SELECT id FROM pokemon_species WHERE name = '${poke.species}'`;
     const speciesSelectRes = await this.sqlQueryPromise(speciesSelectSql);
