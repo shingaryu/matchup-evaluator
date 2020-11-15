@@ -3,6 +3,63 @@ const SqlService = require('./sql-service').SqlService;
 const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
 const logger = require('log4js').getLogger("bot");
 
+export async function calcAndInsertFromRawId(playerPokeId: string, targetPokeId: string, weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: any) {
+  const sqlService = new SqlService();
+  const str1 = (await sqlService.selectPokemonStrategy(playerPokeId))[0];
+  const str2 = (await sqlService.selectPokemonStrategy(targetPokeId))[0];
+  const myPoke = createPokemonSet(
+    str1.species,
+    str1.item, 
+    str1.ability, 
+    str1.nature, 
+    str1.move1, 
+    str1.move2, 
+    str1.move3, 
+    str1.move4,
+    str1.ev_hp,
+    str1.ev_atk, 
+    str1.ev_def, 
+    str1.ev_spa, 
+    str1.ev_spd, 
+    str1.ev_spe, 
+    str1.gender, 
+    str1.iv_hp,
+    str1.iv_atk, 
+    str1.iv_def, 
+    str1.iv_spa, 
+    str1.iv_spd, 
+    str1.iv_spe, 
+    str1.happiness, 
+  );
+
+  const oppPoke = createPokemonSet(
+    str2.species,
+    str2.item, 
+    str2.ability, 
+    str2.nature, 
+    str2.move1, 
+    str2.move2, 
+    str2.move3, 
+    str2.move4,
+    str2.ev_hp,
+    str2.ev_atk, 
+    str2.ev_def, 
+    str2.ev_spa, 
+    str2.ev_spd, 
+    str2.ev_spe, 
+    str2.gender, 
+    str2.iv_hp,
+    str2.iv_atk, 
+    str2.iv_def, 
+    str2.iv_spa, 
+    str2.iv_spd, 
+    str2.iv_spe, 
+    str2.happiness, 
+  );
+
+  return calcAndInsertFromPokemonSets(playerPokeId, targetPokeId, myPoke, oppPoke, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt);
+}
+
 export async function calcAndInsertForIdSet(idSet: any, weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: any) {
   const myPoke = createPokemonSet(
     idSet.spe1_species_name,
@@ -53,7 +110,11 @@ export async function calcAndInsertForIdSet(idSet: any, weights: any, oneOnOneRe
     idSet.str2_iv_spe, 
     idSet.str2_happiness, 
   );
- 
+
+  return calcAndInsertFromPokemonSets(idSet.str1_id, idSet.str2_id, myPoke, oppPoke, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt)
+}
+
+export async function calcAndInsertFromPokemonSets(playerPokeId: string, targetPokeId: string, myPoke: any, oppPoke: any, weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: any) {
   const customGameFormat = Dex.getFormat(`gen8customgame`, true);
   customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
   customGameFormat.forcedLevel = 50;
@@ -93,7 +154,7 @@ export async function calcAndInsertForIdSet(idSet: any, weights: any, oneOnOneRe
   logger.info(`Matchup strength: ${ave} (stddev: ${stdD}, C.V.: ${cv})`);
   const sqlForInsert = new SqlService();
   try {
-    await sqlForInsert.insertMatchupEvaluation(idSet.str1_id, idSet.str2_id, ave, calculatedAt);
+    await sqlForInsert.insertMatchupEvaluation(playerPokeId, targetPokeId, ave, calculatedAt);
     sqlForInsert.endConnection();
     logger.info('Successfully inserted to DB');
     return 0;

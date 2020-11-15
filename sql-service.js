@@ -6,6 +6,11 @@ class SqlService extends PostgresRepositoryBase {
     super();
   }
 
+  async fetchAllMatchupEvaluations() {
+    const sql = 'SELECT * FROM public.matchup_evaluations';
+    return this.sqlQueryPromise(sql);
+  }
+
   async insertPokemonSpeciesIfNotExists(dexNumber, name) {
     const speciesSelectSql = `SELECT * FROM pokemon_species WHERE dex_number = ${dexNumber} AND name = ${this.escapeOrNull(name)};`;
     const speciesSelectRes = await this.sqlQueryPromise(speciesSelectSql);
@@ -185,6 +190,47 @@ class SqlService extends PostgresRepositoryBase {
       )  
     `
 
+    return this.sqlQueryPromise(sql);
+  }
+
+  selectPokemonStrategy(id) {
+    const sql = `
+      SELECT  
+      str.id as id ,
+      str.species_id as species_id ,
+      spe.name as species,
+      spe.dex_number as dex_number,
+      str.item as item ,
+      str.ability as ability ,
+      str.nature as nature ,
+      str.move1 as move1 ,
+      str.move2 as move2 ,
+      str.move3 as move3 ,
+      str.move4 as move4 ,
+      str.ev_hp as ev_hp ,
+      str.ev_atk as ev_atk ,
+      str.ev_def as ev_def ,
+      str.ev_spa as ev_spa ,
+      str.ev_spd as ev_spd ,
+      str.ev_spe as ev_spe ,
+      str.nickname as nickname ,
+      str.gender as gender ,
+      str.iv_hp as iv_hp ,
+      str.iv_atk as iv_atk ,
+      str.iv_def as iv_def ,
+      str.iv_spa as iv_spa ,
+      str.iv_spd as iv_spd ,
+      str.iv_spe as iv_spe ,
+      str.level as level ,
+      str.happiness as happiness ,
+      str.shiny as shiny 
+           
+      from pokemon_strategies as str
+      INNER JOIN pokemon_species as spe
+      ON str.species_id = spe.id
+      WHERE str.id = '${id}'
+    ;`;
+         
     return this.sqlQueryPromise(sql);
   }
 
