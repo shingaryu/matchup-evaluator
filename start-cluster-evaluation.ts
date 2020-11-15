@@ -1,6 +1,7 @@
 require('dotenv').config();
-import throng from 'throng';
-// import { calcAsService } from './start-evaluation-service';
+const { setCommanderGlobal } = require('./setCommanderGlobal');
+const commanderProgram = setCommanderGlobal();
+const throng = require('throng');
 import { calcAsWorker } from './parallel-evaluation';
 import * as evaluationQueueApi from './evaluation-queue-api';
 
@@ -12,30 +13,25 @@ const weights = {
   "p2_hp": -1024,
 }
 
-const start = new Date();
-const interval = setInterval(async () => {
-  const evals = await sqlService.fetchAllMatchupEvaluations();
-  console.log(`${evals.length} evaluations in DB`)
-  if (evals.length === 21) {
-    console.log('calculation seems finished!');
-    console.log(`elapsed time: ${(new Date().getTime() - start.getTime()) / 1000} sec`);
-    clearInterval(interval);
-  }
-}, 100);
-
-// calcAsService(weights, 10, 2, 1, 1);
-// throng(id => {
-//   console.log(`Started worker ${id}`)
-//   calcAsService(weights, 10, 2, 1, 1); 
-// });
-
-// evaluationQueueApi.postReset().then(data => {
-//   calcAsWorker(weights, 30, 2, 1, 1);
-// })
-
-evaluationQueueApi.postReset().then(data => {
-  throng(id => {
-    console.log(`Started worker ${id}`)
-    calcAsWorker(weights, 30, 2, 1, 1); 
-  });
+throng({
+  master: async () => {
+    if (!commanderProgram.asWorker) {
+      console.log(`Start master`);
+      const start = new Date();
+      await evaluationQueueApi.postReset();      
+      const interval = setInterval(async () => {
+        const evals = await sqlService.fetchAllMatchupEvaluations();
+        console.log(`${evals.length} evaluations in DB`)
+        if (evals.length === 21) {
+          console.log('calculation seems finished!');
+          console.log(`elapsed time: ${(new Date().getTime() - start.getTime()) / 1000} sec`);
+          clearInterval(interval);
+        }
+      }, 100);
+    }
+  },
+  worker: (id: number, disconnect: any) => {
+    console.log(`Start worker ${id}`);
+    calcAsWorker(weights, commanderProgram.numoftrials, commanderProgram.depth, 1); 
+  },
 });

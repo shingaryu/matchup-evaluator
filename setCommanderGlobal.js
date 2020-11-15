@@ -9,6 +9,7 @@ function setCommanderGlobal() {
   .option('--usechildprocess', "Use child process to execute heavy calculations with parent process keeping the connection to showdown server.")
   .option('-n, --numoftrials [numoftrials]', "Each matchup evaluation is iterated and averaged by the number of trials. [10]", "10")
   .option('-r, --fetchSpanSecond [fetchSpanSecond]', "Fetch and retry the evaluation after this second when there is no evaluation found. [10]", "10")
+  .option('--as-worker, [asWorker]', "(Cluster evaluation) Start all nodes as workers and omit initialization work.", false)
   .parse(process.argv);
 
   // need to call after global is set
