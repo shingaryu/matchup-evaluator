@@ -2,13 +2,9 @@ const { Client } = require('pg')
 
 class PostgresRepositoryBase {
   constructor() {
-    // on heroku environment
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.DATABASE_URL.indexOf('localhost') >= 0) {
       this.client = new Client({
         connectionString: process.env.DATABASE_URL,
-        ssl: {
-          rejectUnauthorized: false
-        }
       });
     } else {
       this.client = new Client({
