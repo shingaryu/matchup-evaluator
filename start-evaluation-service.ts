@@ -3,7 +3,7 @@ const { setCommanderGlobal } = require('./setCommanderGlobal');
 const commanderProgram = setCommanderGlobal();
 
 const moment = require('moment');
-const SqlService = require('./sql-service').SqlService;
+const { sqlService } = require('./sql-service');
 import * as Eval from './matchup-evaluation-utils';
 
 // Setup Logging
@@ -17,12 +17,11 @@ const weights = {
 calcAsService(weights, commanderProgram.numoftrials, commanderProgram.depth, 1, commanderProgram.fetchSpanSecond);
 
 async function calcAsService(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1, fetchSpanSecond: number) {
-  const sqlForIdSets = new SqlService();
   const calculatedAt = moment().format('YYYY-MM-DD HH:mm:ss');  
   let targetStrategyIdSets: any;
   
   while(true) {
-    targetStrategyIdSets = await sqlForIdSets.fetchTargetStrategyIdSets();
+    targetStrategyIdSets = await sqlService.fetchTargetStrategyIdSets();
 
     if (targetStrategyIdSets.length === 0) {
       logger.info(`There is no matchup to be calculated. Retrying in ${fetchSpanSecond} seconds...`)
@@ -35,7 +34,6 @@ async function calcAsService(weights: any, oneOnOneRepetition: number, minimaxDe
       await Eval.calcAndInsertForIdSet(idSet, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt);
     }
   }
-  // sqlForIdSets.endConnection();
 }
 
 async function sleep(ms: number) {

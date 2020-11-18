@@ -5,8 +5,7 @@ const throng = require('throng');
 import { calcAsWorker } from './parallel-evaluation';
 import * as evaluationQueueApi from './evaluation-queue-api';
 
-const SqlService = require('./sql-service').SqlService;
-const sqlService = new SqlService();
+const { sqlService } = require('./sql-service');
 
 const weights = {
   "p1_hp": 1024,

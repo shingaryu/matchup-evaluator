@@ -9,10 +9,8 @@ const fs = require('fs');
 const { TeamImporter, Dex } = require('percymon');
 global.Dex = Dex;
 global.toId = Dex.getId;
-const SqlService = require('./sql-service').SqlService;
+const { sqlService } = require('./sql-service');
 const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
-
-const sqlService = new SqlService();
 
 const matchupCandidates = loadPokemonSetsFromTexts(global.program.directory);
 const customGameFormat = Dex.getFormat(`gen8customgame`, true);

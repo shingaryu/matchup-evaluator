@@ -244,4 +244,5 @@ class SqlService extends PostgresRepositoryBase {
   }
 }
 
-module.exports.SqlService = SqlService;
+const sqlService = new SqlService();
+module.exports.sqlService = sqlService;

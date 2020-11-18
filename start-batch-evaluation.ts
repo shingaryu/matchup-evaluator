@@ -3,7 +3,7 @@ const { setCommanderGlobal } = require('./setCommanderGlobal');
 const commanderProgram = setCommanderGlobal();
 
 const moment = require('moment');
-const SqlService = require('./sql-service').SqlService;
+const { sqlService } = require('./sql-service');
 import * as Eval from './matchup-evaluation-utils';
 
 // Setup Logging
@@ -18,10 +18,8 @@ calcMatupFromIdSets(weights, commanderProgram.numoftrials, commanderProgram.dept
 
 async function calcMatupFromIdSets (weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
   const startTime = new moment();
-  const sqlForIdSets = new SqlService();
   const calculatedAt = moment().format('YYYY-MM-DD HH:mm:ss');  
-  const targetStrategyIdSets = await sqlForIdSets.fetchTargetStrategyIdSets();
-  sqlForIdSets.endConnection();
+  const targetStrategyIdSets = await sqlService.fetchTargetStrategyIdSets();
 
   if (targetStrategyIdSets.length === 0) {
     logger.info('There is no matchup to be calculated. App is being closed...')

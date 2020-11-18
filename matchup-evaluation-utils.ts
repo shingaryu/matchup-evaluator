@@ -1,10 +1,9 @@
 const { Dex, PcmBattle, Minimax, Util } = require('percymon');
-const SqlService = require('./sql-service').SqlService;
+const { sqlService } = require('./sql-service');
 const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
 const logger = require('log4js').getLogger("bot");
 
 export async function calcAndInsertFromRawId(playerPokeId: string, targetPokeId: string, weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: any) {
-  const sqlService = new SqlService();
   const str1 = (await sqlService.selectPokemonStrategy(playerPokeId))[0];
   const str2 = (await sqlService.selectPokemonStrategy(targetPokeId))[0];
   const myPoke = createPokemonSet(
@@ -152,15 +151,12 @@ export async function calcAndInsertFromPokemonSets(playerPokeId: string, targetP
   const cv = stdD / Math.abs(ave);
 
   logger.info(`Matchup strength: ${ave} (stddev: ${stdD}, C.V.: ${cv})`);
-  const sqlForInsert = new SqlService();
   try {
-    await sqlForInsert.insertMatchupEvaluation(playerPokeId, targetPokeId, ave, calculatedAt);
-    sqlForInsert.endConnection();
+    await sqlService.insertMatchupEvaluation(playerPokeId, targetPokeId, ave, calculatedAt);
     logger.info('Successfully inserted to DB');
     return 0;
   } catch (error) {
     logger.info('Failed to insert the matchup value to DB. This matchup will be skipped.');
-    sqlForInsert.endConnection();
     console.log(error);
     return 1;
   }
