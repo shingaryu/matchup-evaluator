@@ -1,3 +1,5 @@
+import PokemonSet from "./models/PokemonSet";
+
 const { Dex, PcmBattle, Minimax, Util } = require('percymon');
 const { sqlService } = require('./sql-service');
 const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
@@ -113,7 +115,7 @@ export async function calcAndInsertForIdSet(idSet: any, weights: any, oneOnOneRe
   return calcAndInsertFromPokemonSets(idSet.str1_id, idSet.str2_id, myPoke, oppPoke, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt)
 }
 
-export async function calcAndInsertFromPokemonSets(playerPokeId: string, targetPokeId: string, myPoke: any, oppPoke: any, weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: any) {
+export async function calcAndInsertFromPokemonSets(playerPokeId: string, targetPokeId: string, myPoke: PokemonSet, oppPoke: PokemonSet, weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: any) {
   const customGameFormat = Dex.getFormat(`gen8customgame`, true);
   customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
   customGameFormat.forcedLevel = 50;
@@ -187,7 +189,7 @@ export function createPokemonSet(
   happiness: number
 ) {
 
-  const set = {
+  const set: PokemonSet = {
     name: "",
     species: species_name,
     gender: gender,
