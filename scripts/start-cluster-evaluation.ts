@@ -1,11 +1,11 @@
 require('dotenv').config();
-const { setCommanderGlobal } = require('./setCommanderGlobal');
+const { setCommanderGlobal } = require('../services/setCommanderGlobal');
 const commanderProgram = setCommanderGlobal();
 const throng = require('throng');
-import { calcAsWorker } from './parallel-evaluation';
-import * as evaluationQueueApi from './evaluation-queue-api';
+import { calcAsWorker } from '../services/parallel-evaluation';
+import * as evaluationQueueApi from '../repositories/evaluation-queue-api';
 
-const { sqlService } = require('./sql-service');
+const { sqlService } = require('../repositories/sql-service');
 
 const weights = {
   "p1_hp": 1024,

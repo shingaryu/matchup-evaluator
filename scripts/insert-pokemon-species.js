@@ -6,7 +6,7 @@ global.program
 .parse(process.argv);
 
 const fs = require('fs');
-const { sqlService } = require('./sql-service');
+const { sqlService } = require('../repositories/sql-service');
 
 // currently these pokemon are not handled correctly. do it manually
 const exclusionNameList = [

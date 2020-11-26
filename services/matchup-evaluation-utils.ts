@@ -1,7 +1,7 @@
-import PokemonSet from "./models/PokemonSet";
+import PokemonSet from "../models/PokemonSet";
 
 const { Dex, PcmBattle, Minimax, Util } = require('percymon');
-const { sqlService } = require('./sql-service');
+const { sqlService } = require('../repositories/sql-service');
 const validatePokemonSets = require('./team-validate-service').validatePokemonSets;
 const logger = require('log4js').getLogger("bot");
 

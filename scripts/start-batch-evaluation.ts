@@ -1,10 +1,10 @@
 require('dotenv').config();
-const { setCommanderGlobal } = require('./setCommanderGlobal');
+const { setCommanderGlobal } = require('../services/setCommanderGlobal');
 const commanderProgram = setCommanderGlobal();
 
 const moment = require('moment');
-const { sqlService } = require('./sql-service');
-import * as Eval from './matchup-evaluation-utils';
+const { sqlService } = require('../repositories/sql-service');
+import * as Eval from '../services/matchup-evaluation-utils';
 
 // Setup Logging
 const logger = require('log4js').getLogger("bot");

@@ -1,10 +1,10 @@
 require('dotenv').config();
-const { setCommanderGlobal } = require('./setCommanderGlobal');
+const { setCommanderGlobal } = require('../services/setCommanderGlobal');
 setCommanderGlobal();
 
 const moment = require('moment');
 import * as Eval from './matchup-evaluation-utils';
-import * as evaluationQueueApi from './evaluation-queue-api';
+import * as evaluationQueueApi from '../repositories/evaluation-queue-api';
 
 export async function calcAsWorker(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
   const calculatedAt = moment().format('YYYY-MM-DD HH:mm:ss');  

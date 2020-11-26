@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Simulate and evaluate each Pokemon matchup by using Percymon battle engine",
   "scripts": {
-    "start-batch": "node -r ts-node/register start-batch-evaluation.ts",
-    "start-service": "node -r ts-node/register start-evaluation-service.ts",
-    "start-cluster": "node -r ts-node/register start-cluster-evaluation.ts",
+    "start-batch": "node -r ts-node/register ./scripts/start-batch-evaluation.ts",
+    "start-service": "node -r ts-node/register ./scripts/start-evaluation-service.ts",
+    "start-cluster": "node -r ts-node/register ./scripts/start-cluster-evaluation.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "shingaryu",
