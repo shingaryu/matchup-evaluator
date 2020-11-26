@@ -1,12 +1,7 @@
-// Command-line Arguments
 global.program = require('commander');
 global.program
-.option('--net [action]', "'create' - generate a new network. 'update' - use and modify existing network. 'use' - use, but don't modify network. 'none' - use hardcoded weights. ['none']", 'none')
-.option('--algorithm [algorithm]', "Can be 'minimax', 'greedy', or 'random'. ['minimax']", "minimax")
-.option('--depth [depth]', "Minimax bot searches to this depth from the current state. [2]", "2")
-.option('--nolog', "Don't append to log files.")
-.option('--onlyinfo', "Hide debug messages and speed up bot calculations")
-.option('--usechildprocess', "Use child process to execute heavy calculations with parent process keeping the connection to showdown server.")
+.option('-n, --numOfIteration [numOfIteration]', "Each matchup evaluation is iterated and averaged by the number of trials. [10]", "10")
+.option('-d --depth [depth]', "Minimax bot searches to this depth in the matchup evaluation. [2]", "2")
 .parse(process.argv);
 
 const fs = require('fs');
@@ -14,16 +9,15 @@ const { Dex, PcmBattle, Minimax, initLog4js, Util, TeamValidator, TeamImporter }
 const moment = require('moment');
 
 // Setup Logging
-initLog4js(global.program.nolog, global.program.onlyinfo);
-const logger = require('log4js').getLogger("bot");
+initLog4js(true, true);
+const logger = require('log4js').getLogger("app");
 
 const weights = {
   "p1_hp": 1024,
   "p2_hp": -1024,
 }
 
-makeStrengthTable(weights, 10, 1, 1);
-// makeStrengthTable(weights, 100, 3, 1);
+makeStrengthTable(weights, global.program.numOfIteration, global.program.depth, 1);
 
 function makeStrengthTable(weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton = 1) {
   const targetPokemonDir = 'Target Pokemons';
