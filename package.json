@@ -6,12 +6,14 @@
     "start-batch": "node -r ts-node/register ./scripts/start-batch-evaluation.ts",
     "start-service": "node -r ts-node/register ./scripts/start-evaluation-service.ts",
     "start-cluster": "node -r ts-node/register ./scripts/start-cluster-evaluation.ts",
+    "game-end-sim": "node -r ts-node/register ./scripts/game-end-simulation.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "shingaryu",
   "license": "MIT",
   "dependencies": {
     "@types/axios": "^0.14.0",
+    "@types/commander": "^2.12.2",
     "@types/log4js": "^2.3.5",
     "@types/moment": "^2.13.0",
     "@types/node": "^14.10.1",

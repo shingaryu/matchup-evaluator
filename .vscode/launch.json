@@ -15,7 +15,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}\\calc-matchup-evaluations.ts"
+      "program": "${workspaceFolder}\\calc-strength-table.js"
     }
   ]
 }

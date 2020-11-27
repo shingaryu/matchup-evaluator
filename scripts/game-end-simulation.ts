@@ -1,6 +1,8 @@
 // Command-line Arguments
-global.program = require('commander');
-global.program
+// const program = require('commander');
+import { program } from 'commander'
+import PokemonSet from '../models/PokemonSet';
+program
 .option('-n, --numOfIteration [numOfIteration]', "Each matchup evaluation is iterated and averaged by the number of trials. [10]", "10")
 .option('-d --depth [depth]', "Minimax bot searches to this depth in the matchup evaluation. [2]", "2")
 .parse(process.argv);
@@ -18,14 +20,14 @@ const weights = {
   "p2_hp": -1024,
 }
 
-simulateToGameEnd(weights, global.program.numOfIteration, global.program.depth, 1);
+simulateToGameEnd(weights, program.numOfIteration, program.depth, 1);
 
-function simulateToGameEnd(weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton = 1) {
+function simulateToGameEnd(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
   const targetPokemonDir = 'Target Pokemons';
   const teamPokemonDir = 'Team Pokemons';
 
   const customGameFormat = Dex.getFormat(`gen8customgame`, true);
-  customGameFormat.ruleset = customGameFormat.ruleset.filter(rule => rule !== 'Team Preview');
+  customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
   customGameFormat.forcedLevel = 50;
   const teamValidator = new TeamValidator(customGameFormat);
 
@@ -84,7 +86,7 @@ function simulateToGameEnd(weights, oneOnOneRepetition, minimaxDepth, minimaxRep
             if (minimaxDecision.tree.type !== 'max') {
               throw new Error('Child tree of root is not maximum tree. this is likely caused because this turn p1 has a wait request')                
             }
-            const p1BestChoiceTree = minimaxDecision.tree.children.find(x => x.value === minimaxDecision.tree.value);
+            const p1BestChoiceTree = minimaxDecision.tree.children.find((x: any) => x.value === minimaxDecision.tree.value);
             if (p1BestChoiceTree.type !== 'min') {
               throw new Error('Child tree of p1 best choice is not minimum tree. this is likely caused because this turn p2 has a wait request')                
             }
@@ -115,8 +117,8 @@ function simulateToGameEnd(weights, oneOnOneRepetition, minimaxDepth, minimaxRep
           p2Team: targetSelections[j],
           winner: battle.winner === 'botPlayer' ? 0: 1,
           turns: battle.turn,
-          p1PokeHp: battle.p1.pokemon.map(x => x.hp),
-          p2PokeHp: battle.p2.pokemon.map(x => x.hp),
+          p1PokeHp: battle.p1.pokemon.map((x: any) => x.hp),
+          p2PokeHp: battle.p2.pokemon.map((x: any) => x.hp),
           calculatedAt: calculatedAt
         }
 
@@ -134,11 +136,11 @@ function simulateToGameEnd(weights, oneOnOneRepetition, minimaxDepth, minimaxRep
 	console.log("calculation finished");
 }
 
-function teamPokemonStr(team) {
+function teamPokemonStr(team: PokemonSet[]) {
   return `[${team.map(x => x.species).join(', ')}]`;
 }
 
-function showBothSideHp(battle)  {
+function showBothSideHp(battle: any)  {
   // console.log("Current status of both sides:");
   let logP1 = '';
   for(let k = 0; k < battle.p1.pokemon.length; k++) {
@@ -152,7 +154,7 @@ function showBothSideHp(battle)  {
   console.log(`p2: ${logP2}`)
 }
 
-function threeOfAllCombinations(pokemons) {
+function threeOfAllCombinations(pokemons: any[]) {
   const combinations = [];
   for (let i = 0; i < pokemons.length; i++) {
     for (let j = i + 1; j < pokemons.length; j++) {
@@ -166,11 +168,11 @@ function threeOfAllCombinations(pokemons) {
 }
 
 // Read target pokemon sets from team text. If an error occurs, just skip the file and continue.
-function loadPokemonSetsFromTexts(directoryPath) {
+function loadPokemonSetsFromTexts(directoryPath: string) {
   const filenames = fs.readdirSync(directoryPath);
-  const pokemons = [];
+  const pokemons: PokemonSet[] = [];
 
-  filenames.forEach(filename => {
+  filenames.forEach((filename: string) => {
     try {
       const rawText = fs.readFileSync(`${directoryPath}/${filename}`, "utf8");
       const pokemonSets = TeamImporter.importTeam(rawText); 
@@ -190,12 +192,12 @@ function loadPokemonSetsFromTexts(directoryPath) {
 }
 
 // Validate pokemon sets. If the validation failed about one of target pokemons, throw an exception.
-function validatePokemonSets(teamValidator, pokemonSets) {
+function validatePokemonSets(teamValidator: any, pokemonSets: PokemonSet[]) {
   pokemonSets.forEach(pokemonSet => {
     const setValidationProblems = teamValidator.validateSet(pokemonSet);
     if (setValidationProblems) {
       logger.error(`${setValidationProblems.length} problem(s) is found about ${pokemonSet.species} during the validation.`);
-      setValidationProblems.forEach(problem => {
+      setValidationProblems.forEach((problem: any) => {
         logger.error(problem);
       })
       throw new Error('Pokemon Set Validation Error');
