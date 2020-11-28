@@ -1,5 +1,4 @@
-// Command-line Arguments
-// const program = require('commander');
+require('dotenv').config();
 import { program } from 'commander'
 import PokemonSet from '../models/PokemonSet';
 program
@@ -20,15 +19,34 @@ const weights = {
   "p2_hp": -1024,
 }
 
-simulateToGameEnd(weights, program.numOfIteration, program.depth, 1);
+const customGameFormat = Dex.getFormat(`gen8customgame`, true);
+customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
+customGameFormat.forcedLevel = 50;
 
-function simulateToGameEnd(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
+simulateFromLocalFiles(weights, program.numOfIteration, program.depth, 1);
+
+type GameEndResult = {
+  p1Team: PokemonSet[],
+  p2Team: PokemonSet[],
+  winner: number,
+  turns: number,
+  p1PokeHp: number[],
+  p2PokeHp: number[],
+  calculatedAt: string
+}
+
+// async function simulateFromDBItems(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
+//   const allStrategyId = await sqlService.selectAllPokemonStrategyId();
+
+// }
+
+async function simulateFromLocalFiles(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
   const targetPokemonDir = 'Target Pokemons';
   const teamPokemonDir = 'Team Pokemons';
 
-  const customGameFormat = Dex.getFormat(`gen8customgame`, true);
-  customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
-  customGameFormat.forcedLevel = 50;
+  // const customGameFormat = Dex.getFormat(`gen8customgame`, true);
+  // customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
+  // customGameFormat.forcedLevel = 50;
   const teamValidator = new TeamValidator(customGameFormat);
 
   const targetPokemons = loadPokemonSetsFromTexts(`./${targetPokemonDir}`);
@@ -42,99 +60,116 @@ function simulateToGameEnd(weights: any, oneOnOneRepetition: number, minimaxDept
   const teamSelections = threeOfAllCombinations(teamPokemons).slice(0, 1);
   const targetSelections = threeOfAllCombinations(targetPokemons).slice(0, 1);
 
+  simulateFromTeamSelections(teamSelections, targetSelections, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton);
+}
+
+async function simulateFromTeamSelections(teamSelections: PokemonSet[][], targetSelections: PokemonSet[][], weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
   logger.info("start evaluating game end win/lose...")
   const calculatedAt = moment().format('YYYY-MM-DD HH:mm:ss');
-  const minimax = new Minimax(false, minimaxRepetiton, false, weights);
+  // const minimax = new Minimax(false, minimaxRepetiton, false, weights);
   const evalValueTable = [];
-  const results = [];
+  // const results = [];
   for (let i = 0; i < teamSelections.length; i++) {
     const myTeam = teamSelections[i];  
     // const evalRecord = [];
     for (let j = 0; j < targetSelections.length; j++) {
       const oppTeam = targetSelections[j];
-      logger.info(`Simulate about ${teamPokemonStr(myTeam)} vs ${teamPokemonStr(oppTeam)}`);
-      const repeatedOneOnOneValues = []; 
-      for (let k = 0; k < oneOnOneRepetition; k++) {
-        const p1 = { name: 'botPlayer', avatar: 1, team: myTeam };
-        const p2 = { name: 'humanPlayer', avatar: 1, team: oppTeam };								
-        const battleOptions = { format: customGameFormat, rated: false, send: null, p1, p2 };
-        const battle = new PcmBattle(battleOptions);
-        battle.start();              
-        battle.makeRequest();                   
+      const results = simulateGameMatch(myTeam, oppTeam, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt);
+      let turnsSum = 0.0;
+      results.forEach(x => x.turns);
 
-        const limitSteps = 20;
-        let l = 0;
-        for (l = 1; l <= limitSteps; l++) {
-          console.log(`\nStep: ${l}, Turn: ${battle.turn}`);
-
-          const { p1Choices } = Util.parseRequest(battle.p1.request);
-          const minimaxDecision = minimax.decide(Util.cloneBattle(battle), p1Choices, minimaxDepth);
-
-          if (battle.p1.request.wait) {
-            const p2BestChoice = minimaxDecision.tree.action;
-            battle.choose('p2', Util.toChoiceString(p2BestChoice, battle.p2), battle.rqid);
-            console.log("Player action: (wait)");
-            console.log("Opponent action: " + Util.toChoiceString(p2BestChoice, battle.p2));            
-          } else if (battle.p2.request.wait) {
-            const p1BestChoice = minimaxDecision.tree.action;             
-            battle.choose('p1', Util.toChoiceString(p1BestChoice, battle.p1), battle.rqid);
-            console.log("Player action: " + Util.toChoiceString(p1BestChoice, battle.p1));
-            console.log("Opponent action: (wait)");            
-          } else {
-            const p1BestChoice = minimaxDecision.tree.action;
-
-            if (minimaxDecision.tree.type !== 'max') {
-              throw new Error('Child tree of root is not maximum tree. this is likely caused because this turn p1 has a wait request')                
-            }
-            const p1BestChoiceTree = minimaxDecision.tree.children.find((x: any) => x.value === minimaxDecision.tree.value);
-            if (p1BestChoiceTree.type !== 'min') {
-              throw new Error('Child tree of p1 best choice is not minimum tree. this is likely caused because this turn p2 has a wait request')                
-            }
-            const p2BestChoice = p1BestChoiceTree.action;
-            
-            battle.choose('p1', Util.toChoiceString(p1BestChoice, battle.p1), battle.rqid);
-            battle.choose('p2', Util.toChoiceString(p2BestChoice, battle.p2), battle.rqid);
-            console.log("Player action: " + Util.toChoiceString(p1BestChoice, battle.p1));
-            console.log("Opponent action: " + Util.toChoiceString(p2BestChoice, battle.p2));            
-          }
-
-          showBothSideHp(battle);
-          if (battle.ended) {
-            console.log(`battle ended!`);
-            console.log(`winner: ${battle.winner}`)
-            console.log()
-            repeatedOneOnOneValues.push({ myTeam: p1.team, steps: l, winner: battle.winner});
-            break;  
-          } else if (l === limitSteps) {
-            throw new Error(`battle did not finished within ${limitSteps} steps`);
-          } else {
-            continue;
-          }
-        }
-
-        const result = {
-          p1Team: teamSelections[i],
-          p2Team: targetSelections[j],
-          winner: battle.winner === 'botPlayer' ? 0: 1,
-          turns: battle.turn,
-          p1PokeHp: battle.p1.pokemon.map((x: any) => x.hp),
-          p2PokeHp: battle.p2.pokemon.map((x: any) => x.hp),
-          calculatedAt: calculatedAt
-        }
-
-        results.push(result);
-      } // end loop of oneononerepetition
-      let stepSum = 0.0;
-      repeatedOneOnOneValues.forEach(x => stepSum += x.steps);
-
-      console.log(`botPlayerWins: ${repeatedOneOnOneValues.filter(x => x.winner === 'botPlayer').length}`)
-      console.log(`humanPlayerWins: ${repeatedOneOnOneValues.filter(x => x.winner === 'humanPlayer').length}`)
-      console.log(`average steps: ${stepSum / repeatedOneOnOneValues.length}`)
+      console.log(`botPlayerWins: ${results.filter(x => x.winner === 0).length}`)
+      console.log(`humanPlayerWins: ${results.filter(x => x.winner === 1).length}`)
+      console.log(`average turns: ${turnsSum / results.length}`)
     };
   }
 
 	console.log("calculation finished");
 }
+
+
+function simulateGameMatch(myTeam: PokemonSet[], oppTeam: PokemonSet[], weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: string) {
+  const minimax = new Minimax(false, minimaxRepetiton, false, weights);
+  const results: GameEndResult[] = [];
+
+  logger.info(`Simulate about ${teamPokemonStr(myTeam)} vs ${teamPokemonStr(oppTeam)}`);
+  const repeatedOneOnOneValues = []; 
+  for (let k = 0; k < oneOnOneRepetition; k++) {
+    const p1 = { name: 'botPlayer', avatar: 1, team: myTeam };
+    const p2 = { name: 'humanPlayer', avatar: 1, team: oppTeam };								
+    const battleOptions = { format: customGameFormat, rated: false, send: null, p1, p2 };
+    const battle = new PcmBattle(battleOptions);
+    battle.start();              
+    battle.makeRequest();                   
+
+    const limitSteps = 20;
+    let l = 0;
+    for (l = 1; l <= limitSteps; l++) {
+      console.log(`\nStep: ${l}, Turn: ${battle.turn}`);
+
+      const { p1Choices } = Util.parseRequest(battle.p1.request);
+      const minimaxDecision = minimax.decide(Util.cloneBattle(battle), p1Choices, minimaxDepth);
+
+      if (battle.p1.request.wait) {
+        const p2BestChoice = minimaxDecision.tree.action;
+        battle.choose('p2', Util.toChoiceString(p2BestChoice, battle.p2), battle.rqid);
+        console.log("Player action: (wait)");
+        console.log("Opponent action: " + Util.toChoiceString(p2BestChoice, battle.p2));            
+      } else if (battle.p2.request.wait) {
+        const p1BestChoice = minimaxDecision.tree.action;             
+        battle.choose('p1', Util.toChoiceString(p1BestChoice, battle.p1), battle.rqid);
+        console.log("Player action: " + Util.toChoiceString(p1BestChoice, battle.p1));
+        console.log("Opponent action: (wait)");            
+      } else {
+        const p1BestChoice = minimaxDecision.tree.action;
+
+        if (minimaxDecision.tree.type !== 'max') {
+          throw new Error('Child tree of root is not maximum tree. this is likely caused because this turn p1 has a wait request')                
+        }
+        const p1BestChoiceTree = minimaxDecision.tree.children.find((x: any) => x.value === minimaxDecision.tree.value);
+        if (p1BestChoiceTree.type !== 'min') {
+          throw new Error('Child tree of p1 best choice is not minimum tree. this is likely caused because this turn p2 has a wait request')                
+        }
+        const p2BestChoice = p1BestChoiceTree.action;
+        
+        battle.choose('p1', Util.toChoiceString(p1BestChoice, battle.p1), battle.rqid);
+        battle.choose('p2', Util.toChoiceString(p2BestChoice, battle.p2), battle.rqid);
+        console.log("Player action: " + Util.toChoiceString(p1BestChoice, battle.p1));
+        console.log("Opponent action: " + Util.toChoiceString(p2BestChoice, battle.p2));            
+      }
+
+      showBothSideHp(battle);
+      if (battle.ended) {
+        console.log(`battle ended!`);
+        console.log(`winner: ${battle.winner}`)
+        console.log()
+        repeatedOneOnOneValues.push({ myTeam: p1.team, steps: l, winner: battle.winner});
+        break;  
+      } else if (l === limitSteps) {
+        throw new Error(`battle did not finished within ${limitSteps} steps`);
+      } else {
+        continue;
+      }
+    }
+
+    const result: GameEndResult = {
+      p1Team: myTeam,
+      p2Team: oppTeam,
+      winner: battle.winner === 'botPlayer' ? 0: 1,
+      turns: battle.turn,
+      p1PokeHp: battle.p1.pokemon.map((x: any) => x.hp),
+      p2PokeHp: battle.p2.pokemon.map((x: any) => x.hp),
+      calculatedAt: calculatedAt
+    }
+
+    // await sqlService.insertGameEndResult(result.p1Team, result.p2Team, result.winner, result.turns, 
+    //   result.p1PokeHp, result.p2PokeHp, result.calculatedAt);
+    results.push(result);
+  }
+  
+  return results;
+}
+
 
 function teamPokemonStr(team: PokemonSet[]) {
   return `[${team.map(x => x.species).join(', ')}]`;
