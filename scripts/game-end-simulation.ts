@@ -1,6 +1,8 @@
 require('dotenv').config();
 import { program } from 'commander'
 import PokemonSet from '../models/PokemonSet';
+import * as Mapper from "../services/mapper";
+const { sqlService } = require('../repositories/sql-service')
 program
 .option('-n, --numOfIteration [numOfIteration]', "Each matchup evaluation is iterated and averaged by the number of trials. [10]", "10")
 .option('-d --depth [depth]', "Minimax bot searches to this depth in the matchup evaluation. [2]", "2")
@@ -23,7 +25,8 @@ const customGameFormat = Dex.getFormat(`gen8customgame`, true);
 customGameFormat.ruleset = customGameFormat.ruleset.filter((rule: string) => rule !== 'Team Preview');
 customGameFormat.forcedLevel = 50;
 
-simulateFromLocalFiles(weights, program.numOfIteration, program.depth, 1);
+// simulateFromLocalFiles(weights, program.numOfIteration, program.depth, 1);
+simulateFromDBItems(weights, program.numOfIteration, program.depth, 1);
 
 type GameEndResult = {
   p1Team: PokemonSet[],
@@ -35,10 +38,36 @@ type GameEndResult = {
   calculatedAt: string
 }
 
-// async function simulateFromDBItems(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
-//   const allStrategyId = await sqlService.selectAllPokemonStrategyId();
+async function simulateFromDBItems(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
+  const calculatedAt = moment().format('YYYY-MM-DD HH:mm:ss');
 
-// }
+  const allStrategyId = (await sqlService.selectAllPokemonStrategyId()).map((x: any) => x.id);
+  while (true) {
+    const myTeamId = randomItems<any>(allStrategyId, 3);
+    const oppTeamId = randomItems<any>(allStrategyId, 3);
+    try {
+      await simulateFromRawId(myTeamId, oppTeamId, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt);
+    } catch(e) {
+      console.log('Error while game end simulation. this match is skipped...')
+    } 
+  }
+}
+
+async function simulateFromRawId(myTeamId: string[], oppTeamId: string[], weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton: number, calculatedAt: string) {
+  const myTeamStrategies = (await Promise.all(myTeamId.map(x => sqlService.selectPokemonStrategy(x)))).map(y => y[0]);
+  const oppTeamStrategies = (await Promise.all(oppTeamId.map(x => sqlService.selectPokemonStrategy(x)))).map(y => y[0]);
+
+  const myTeamSets = myTeamStrategies.map(x => Mapper.pokemonSetFromStrategyEntity(x));
+  const oppTeamSets = oppTeamStrategies.map(x => Mapper.pokemonSetFromStrategyEntity(x));
+  
+  const results = simulateGameMatch(myTeamSets, oppTeamSets, weights, oneOnOneRepetition, minimaxDepth, minimaxRepetiton, calculatedAt);
+
+  await Promise.all(results.map(result => {
+    return sqlService.insertGameEndResult(myTeamId, oppTeamId, result.winner, result.turns, 
+        result.p1PokeHp, result.p2PokeHp, result.calculatedAt);
+  }));
+  console.log('successfully inserted game end results')
+}
 
 async function simulateFromLocalFiles(weights: any, oneOnOneRepetition: number, minimaxDepth: number, minimaxRepetiton = 1) {
   const targetPokemonDir = 'Target Pokemons';
@@ -162,8 +191,6 @@ function simulateGameMatch(myTeam: PokemonSet[], oppTeam: PokemonSet[], weights:
       calculatedAt: calculatedAt
     }
 
-    // await sqlService.insertGameEndResult(result.p1Team, result.p2Team, result.winner, result.turns, 
-    //   result.p1PokeHp, result.p2PokeHp, result.calculatedAt);
     results.push(result);
   }
   
@@ -238,5 +265,21 @@ function validatePokemonSets(teamValidator: any, pokemonSets: PokemonSet[]) {
       throw new Error('Pokemon Set Validation Error');
     }  
   })
+}
+
+function randomItems<T>(array: T[], length: number): T[] {
+  let tmpList = array.concat();
+  const team: T[] = [];
+  if (tmpList.length < length) {
+    throw new Error("Team length must be longer than slots");
+  }
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * tmpList.length);
+    team.push(tmpList[randomIndex]);
+    tmpList = tmpList.filter(x => x !== tmpList[randomIndex]);
+  }
+
+  return team;
 }
 

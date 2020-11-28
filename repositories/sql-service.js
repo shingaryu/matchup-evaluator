@@ -234,6 +234,53 @@ class SqlService extends PostgresRepositoryBase {
     return this.sqlQueryPromise(sql);
   }
 
+  insertGameEndResult(p1TeamId, p2TeamId, winner, turns, p1PokeHp, p2PokeHp, calculatedAt) {
+    if (p1TeamId.length !== 3) {
+      throw new Error('Length of p1Team must be 3');
+    }
+    if (p2TeamId.length !== 3) {
+      throw new Error('Length of p2Team must be 3');
+    }
+    if (p1PokeHp.length !== 3) {
+      throw new Error('Length of p1PokeHp must be 3');
+    }
+    if (p2PokeHp.length !== 3) {
+      throw new Error('Length of p2PokeHp must be 3');
+    }
+
+    const sql = `
+      INSERT INTO game_end_results VALUES (
+        '${uuidv4()}',
+        '${p1TeamId[0]}',
+        '${p1TeamId[1]}',
+        '${p1TeamId[2]}',
+        '${p2TeamId[0]}',
+        '${p2TeamId[1]}',
+        '${p2TeamId[2]}',
+        '${winner}',
+        '${p1PokeHp[0]}',
+        '${p1PokeHp[1]}',
+        '${p1PokeHp[2]}',
+        '${p2PokeHp[0]}',
+        '${p2PokeHp[1]}',
+        '${p2PokeHp[2]}',
+        '${calculatedAt}',
+        '${turns}'
+      )  
+    ;`
+
+    console.log(sql)
+    return this.sqlQueryPromise(sql);
+  }
+
+  selectAllPokemonStrategyId() {
+    const sql = `
+      select id from pokemon_strategies;
+    ;`;
+         
+    return this.sqlQueryPromise(sql);
+  }
+
   // Note: return with single quotation
   escapeOrNull(text) {
     if (!text) {

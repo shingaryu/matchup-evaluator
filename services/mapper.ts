@@ -1,6 +1,10 @@
 import PokemonSet from "../models/PokemonSet"
 
 export function pokemonSetFromStrategyEntity(str: any) {
+  if (!str.species) {
+    throw new Error('Error: species is empty!')
+  }
+
   const myPoke = createPokemonSet(
     str.species,
     str.item, 

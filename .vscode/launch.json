@@ -16,6 +16,19 @@
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}\\calc-strength-table.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Game end sim",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}\\scripts\\game-end-simulation.ts"
     }
   ]
 }
