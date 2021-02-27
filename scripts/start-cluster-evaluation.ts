@@ -19,12 +19,15 @@ throng({
       const start = new Date();
       await evaluationQueueApi.postReset();      
       const interval = setInterval(async () => {
-        const evals = await sqlService.fetchAllMatchupEvaluations();
-        console.log(`${evals.length} evaluations in DB`)
-        if (evals.length === 21) {
-          console.log('calculation seems finished!');
+        const targets = await (await evaluationQueueApi.getTargetsList()).data;
+        const processes = await (await evaluationQueueApi.getProcessingList()).data;
+        console.log(`${targets.length} evaluations remain, ${processes.length} evaluations in progress`)
+        if (targets.length === 0 && processes.length === 0) {
+          console.log('all evaluation completed!');
           console.log(`elapsed time: ${(new Date().getTime() - start.getTime()) / 1000} sec`);
+          console.log(`process exits...`);
           clearInterval(interval);
+          process.exit();
         }
       }, 100);
     }
