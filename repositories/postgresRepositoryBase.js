@@ -19,6 +19,7 @@ class PostgresRepositoryBase {
   }
 
   endConnection() {
+    console.log("postgres end connection...")
     this.client.end();
   }
 
