@@ -29,6 +29,19 @@
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}\\scripts\\game-end-simulation.ts"
-    }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Current ts",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${file}"
+    }    
   ]
 }

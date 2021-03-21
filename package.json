@@ -22,7 +22,7 @@
     "dotenv": "^8.2.0",
     "log4js": "^6.3.0",
     "moment": "^2.27.0",
-    "percymon": "git+https://github.com/shingaryu/showdownbot.git#v3.3.2",
+    "percymon": "git+https://github.com/shingaryu/showdownbot.git#v3.4.0",
     "pg": "^8.3.0",
     "throng": "^5.0.0",
     "ts-node": "^9.0.0",
